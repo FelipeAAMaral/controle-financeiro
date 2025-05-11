@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, Plus, PiggyBank } from "lucide-react";
+import { useState, useEffect } from "react";
+import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, Plus, PiggyBank, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,18 +10,27 @@ import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import FinancialTips from "@/components/dashboard/FinancialTips";
 import FinancialGoals from "@/components/dashboard/FinancialGoals";
 import FinancialOverview from "@/components/dashboard/FinancialOverview";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleAddTransaction = () => {
-    toast({
-      title: "Adicionar transação",
-      description: "Você será redirecionado para o formulário",
-      duration: 3000,
-    });
+    navigate("/transacoes/nova");
   };
+
+  const [totalPatrimonio, setTotalPatrimonio] = useState(0);
+
+  useEffect(() => {
+    // Simular o carregamento de dados de patrimônio
+    const timer = setTimeout(() => {
+      setTotalPatrimonio(22800);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
   const capitalizedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
@@ -84,34 +93,17 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="animated-card">
+        <Card className="animated-card cursor-pointer" onClick={() => navigate("/investimentos")}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Benefícios</CardTitle>
-            <PiggyBank className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Investimentos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Alimentação</span>
-                  <span>R$ 420,30 / R$ 800,00</span>
-                </div>
-                <Progress value={52} className="h-2" />
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Refeição</span>
-                  <span>R$ 284,50 / R$ 600,00</span>
-                </div>
-                <Progress value={47} className="h-2" />
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Mobilidade</span>
-                  <span>R$ 120,00 / R$ 300,00</span>
-                </div>
-                <Progress value={40} className="h-2" />
-              </div>
+            <div className="text-2xl font-bold">R$ {new Intl.NumberFormat('pt-BR').format(totalPatrimonio)}</div>
+            <p className="text-xs text-gray-500">Patrimônio total</p>
+            <div className="mt-2 flex items-center">
+              <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
+              <span className="text-xs text-green-500">+15% acumulado</span>
             </div>
           </CardContent>
         </Card>

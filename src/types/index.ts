@@ -70,3 +70,45 @@ export interface Locomocao {
   preco: number;
   observacoes?: string;
 }
+
+// Tipo para investimentos
+export interface Investimento {
+  id: string;
+  nome: string;
+  tipo: 'acao' | 'fundo' | 'tesouro' | 'poupanca' | 'cdb' | 'lci' | 'lca' | 'cripto' | 'internacional' | 'outro';
+  categoria: 'renda_fixa' | 'renda_variavel' | 'cripto' | 'internacional';
+  codigo?: string; // Código do ativo (ex: PETR4, BTCUSD)
+  valorInicial: number;
+  dataCompra: string;
+  quantidade?: number;
+  precoUnitario?: number;
+  rentabilidade?: number; // Em percentual (ex: 10.5 para 10.5%)
+  vencimento?: string; // Para investimentos com data de vencimento
+  corretora?: string;
+  moeda: 'BRL' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'outro';
+  observacoes?: string;
+}
+
+// Tipo para cotação de moedas
+export interface CotacaoMoeda {
+  codigo: string; // Ex: USD, EUR, GBP
+  nome: string;
+  valor: number; // Valor em relação ao Real (BRL)
+  dataAtualizacao: string;
+}
+
+// Tipo para planejamento de gastos em viagens
+export interface PlanejamentoGastoViagem {
+  id: string;
+  viagemId: string;
+  categoria: string;
+  descricao: string;
+  valor: number;
+  moedaOrigem: string;
+  moedaDestino: string;
+  valorConvertido: number;
+  taxaConversao: number;
+  taxaIOF?: number;
+  taxaBancaria?: number;
+  data?: string;
+}

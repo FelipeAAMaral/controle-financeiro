@@ -1,10 +1,10 @@
 
-import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -15,621 +15,546 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, MapPin, Plus, Trash2, TrendingUp } from "lucide-react";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, Plane, Train, Bus, Car } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Viagem, Objetivo, Locomocao } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Viagem, Destino, Objetivo } from "@/types";
+import CurrencyConverter from "@/components/CurrencyConverter";
 
-// Schema de validação com zod
-const destinoSchema = z.object({
-  id: z.string().optional(),
-  cidade: z.string().min(1, { message: "Cidade é obrigatória" }),
-  pais: z.string().min(1, { message: "País é obrigatório" }),
-  dataChegada: z.string(),
-  dataPartida: z.string(),
-  hospedagem: z.string().optional(),
-  observacoes: z.string().optional(),
-});
+// Mock de objetivos para seleção
+const mockObjetivos: Objetivo[] = [
+  {
+    id: "1",
+    title: "Comprar um carro",
+    currentAmount: 10000,
+    targetAmount: 45000,
+    deadline: "2024-12-31",
+    icon: "car",
+    color: "#4CAF50"
+  },
+  {
+    id: "2",
+    title: "Férias em Portugal",
+    currentAmount: 8000,
+    targetAmount: 15000,
+    deadline: "2023-12-01",
+    icon: "plane",
+    color: "#2196F3"
+  },
+  {
+    id: "3",
+    title: "Intercâmbio na Espanha",
+    currentAmount: 12000,
+    targetAmount: 20000,
+    deadline: "2024-02-15",
+    icon: "book",
+    color: "#9C27B0"
+  },
+  {
+    id: "4",
+    title: "Abrir um negócio",
+    currentAmount: 15000,
+    targetAmount: 100000,
+    deadline: "2025-06-30",
+    icon: "store",
+    color: "#FF9800"
+  }
+];
 
-const locomocaoSchema = z.object({
-  id: z.string().optional(),
-  tipo: z.enum(['aviao', 'trem', 'onibus', 'carro', 'barco', 'outro']),
-  origemIndex: z.number(),
-  destinoIndex: z.number(),
-  dataPartida: z.string(),
-  horaPartida: z.string(),
-  dataChegada: z.string(),
-  horaChegada: z.string(),
-  companhia: z.string().optional(),
-  numeroVoo: z.string().optional(),
-  preco: z.string().transform((val) => Number(val)),
-  observacoes: z.string().optional(),
-});
-
+// Esquema de validação para o formulário
 const viagemSchema = z.object({
   id: z.string().optional(),
   nome: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
-  startDate: z.string(),
-  endDate: z.string(),
+  startDate: z.date({
+    required_error: "Data de início é obrigatória",
+  }),
+  endDate: z.date({
+    required_error: "Data de término é obrigatória",
+  }),
   objetivo: z.string().optional(),
-  budget: z.string().transform((val) => Number(val)),
-  destinos: z.array(destinoSchema).min(1, { message: "Adicione pelo menos um destino" }),
-  locomocoes: z.array(locomocaoSchema).optional(),
+  budget: z.number().nonnegative({ message: "Orçamento deve ser um valor positivo" }),
+  destinos: z.array(
+    z.object({
+      id: z.string().optional(),
+      cidade: z.string().min(1, { message: "Cidade é obrigatória" }),
+      pais: z.string().min(1, { message: "País é obrigatório" }),
+      dataChegada: z.date({
+        required_error: "Data de chegada é obrigatória",
+      }),
+      dataPartida: z.date({
+        required_error: "Data de partida é obrigatória",
+      }),
+      hospedagem: z.string().optional(),
+      observacoes: z.string().optional(),
+    })
+  ).min(1, { message: "Adicione pelo menos um destino" }),
+  locomocoes: z.array(
+    z.object({
+      id: z.string().optional(),
+      tipo: z.enum(["aviao", "trem", "onibus", "carro", "barco", "outro"], {
+        required_error: "Selecione o tipo de locomoção",
+      }),
+      origem: z.string(),
+      destino: z.string(),
+      dataPartida: z.date({
+        required_error: "Data de partida é obrigatória",
+      }),
+      horaPartida: z.string(),
+      dataChegada: z.date({
+        required_error: "Data de chegada é obrigatória",
+      }),
+      horaChegada: z.string(),
+      companhia: z.string().optional(),
+      numeroVoo: z.string().optional(),
+      preco: z.number().nonnegative({ message: "Preço deve ser um valor positivo" }),
+      observacoes: z.string().optional(),
+    })
+  ).optional()
 });
 
 type ViagemFormValues = z.infer<typeof viagemSchema>;
 
 interface ViagemFormProps {
-  onClose: () => void;
-  onSubmit: (data: ViagemFormValues) => void;
   initialData?: Viagem;
+  onSubmit: (data: any) => void;
+  onClose: () => void;
+  isSubmitting: boolean;
   isEdit?: boolean;
-  isSubmitting?: boolean;
 }
 
-// Mock objetivos para seleção
-const mockObjetivos: Objetivo[] = [
-  {
-    id: "1",
-    title: "Fundo de emergência",
-    currentAmount: 5000,
-    targetAmount: 15000,
-    deadline: "2023-12-31",
-    icon: "🛡️",
-    color: "bg-blue-500",
-  },
-  {
-    id: "2",
-    title: "Viagem para Europa",
-    currentAmount: 3200,
-    targetAmount: 12000,
-    deadline: "2024-07-31",
-    icon: "✈️",
-    color: "bg-purple-500",
-  },
-  {
-    id: "3",
-    title: "Intercâmbio",
-    currentAmount: 5000,
-    targetAmount: 20000,
-    deadline: "2024-06-30",
-    icon: "📚",
-    color: "bg-green-500",
-  },
-];
-
-const tiposLocomocao = [
-  { value: 'aviao', label: 'Avião', icon: <Plane className="h-4 w-4" /> },
-  { value: 'trem', label: 'Trem', icon: <Train className="h-4 w-4" /> },
-  { value: 'onibus', label: 'Ônibus', icon: <Bus className="h-4 w-4" /> },
-  { value: 'carro', label: 'Carro', icon: <Car className="h-4 w-4" /> },
-  { value: 'barco', label: 'Barco', icon: null },
-  { value: 'outro', label: 'Outro', icon: null },
-];
-
-export default function ViagemForm({
-  onClose,
-  onSubmit,
+const ViagemForm = ({
   initialData,
+  onSubmit,
+  onClose,
+  isSubmitting,
   isEdit = false,
-  isSubmitting = false,
-}: ViagemFormProps) {
+}: ViagemFormProps) => {
+  const [showCurrencyConverter, setShowCurrencyConverter] = useState(false);
+  
   const form = useForm<ViagemFormValues>({
     resolver: zodResolver(viagemSchema),
-    defaultValues: initialData ? {
-      ...initialData,
-      budget: initialData.budget.toString(),
-      locomocoes: []
-    } : {
-      nome: "",
-      startDate: "",
-      endDate: "",
-      objetivo: undefined,
-      budget: "0",
-      destinos: [{ cidade: "", pais: "", dataChegada: "", dataPartida: "" }],
-      locomocoes: [],
-    }
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          budget: Number(initialData.budget), // Ensure budget is a number
+          startDate: new Date(initialData.startDate),
+          endDate: new Date(initialData.endDate),
+          destinos: initialData.destinos.map(destino => ({
+            ...destino,
+            dataChegada: new Date(destino.dataChegada),
+            dataPartida: new Date(destino.dataPartida),
+          })),
+          locomocoes: [],
+        }
+      : {
+          nome: "",
+          startDate: new Date(),
+          endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+          budget: 0,
+          destinos: [
+            {
+              cidade: "",
+              pais: "",
+              dataChegada: new Date(),
+              dataPartida: new Date(new Date().setDate(new Date().getDate() + 7)),
+            },
+          ],
+          locomocoes: [],
+        },
   });
 
-  const { fields: destinoFields, append: appendDestino, remove: removeDestino } = useFieldArray({
+  const { fields: destinosFields, append: appendDestino, remove: removeDestino } = useFieldArray({
     control: form.control,
-    name: "destinos"
+    name: "destinos",
   });
 
-  const { fields: locomocaoFields, append: appendLocomocao, remove: removeLocomocao } = useFieldArray({
-    control: form.control,
-    name: "locomocoes"
-  });
-
-  const handleFormSubmit = (values: ViagemFormValues) => {
-    onSubmit(values);
-  };
-
-  const addDestino = () => {
-    appendDestino({
-      cidade: "",
-      pais: "",
-      dataChegada: "",
-      dataPartida: ""
-    });
-  };
-
-  const addLocomocao = () => {
-    // Adicionar um transporte entre o destino anterior e o próximo
-    const destinoCount = destinoFields.length;
-    if (destinoCount >= 2) {
-      appendLocomocao({
-        tipo: "aviao",
-        origemIndex: destinoCount - 2,
-        destinoIndex: destinoCount - 1,
-        dataPartida: "",
-        horaPartida: "",
-        dataChegada: "",
-        horaChegada: "",
-        preco: "0"
-      });
-    }
+  const handleSubmit = (values: ViagemFormValues) => {
+    // Preparar os dados para enviar
+    const data = {
+      ...values,
+      startDate: format(values.startDate, 'yyyy-MM-dd'),
+      endDate: format(values.endDate, 'yyyy-MM-dd'),
+      destinos: values.destinos.map(destino => ({
+        ...destino,
+        dataChegada: format(destino.dataChegada, 'yyyy-MM-dd'),
+        dataPartida: format(destino.dataPartida, 'yyyy-MM-dd'),
+      })),
+      id: initialData?.id || `viagem-${Date.now()}`,
+    };
+    
+    onSubmit(data);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Informações Básicas */}
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="text-lg font-medium">Informações Básicas</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="nome"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Viagem</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Férias de Verão em Portugal" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="objetivo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Objetivo Financeiro (opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um objetivo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum objetivo</SelectItem>
-                        {mockObjetivos.map((objetivo) => (
-                          <SelectItem key={objetivo.id} value={objetivo.id}>
-                            {objetivo.icon} {objetivo.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Vincule esta viagem a um objetivo financeiro existente
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data de Início</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data de Término</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="budget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Orçamento Total (R$)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        step="0.01" 
-                        placeholder="0.00" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+          <FormField
+            control={form.control}
+            name="nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome da Viagem</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Férias na Europa" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
-          {/* Destinos */}
-          <div className="md:col-span-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Destinos</h3>
-              <Button type="button" variant="outline" size="sm" onClick={addDestino}>
-                <Plus className="mr-1 h-4 w-4" /> Adicionar Destino
-              </Button>
-            </div>
-            
-            <div className="space-y-4 mt-4">
-              {destinoFields.map((destino, index) => (
-                <Card key={destino.id} className="relative">
-                  <CardContent className="pt-6">
-                    <div className="absolute top-2 right-2">
-                      {index > 0 && (
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => removeDestino(index)}
-                          className="h-7 w-7 text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <FormField
-                        control={form.control}
-                        name={`destinos.${index}.cidade`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cidade</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+          <FormField
+            control={form.control}
+            name="objetivo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Objetivo Relacionado</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vincular a um objetivo (opcional)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {mockObjetivos.map((objetivo) => (
+                      <SelectItem key={objetivo.id} value={objetivo.id}>
+                        {objetivo.title} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(objetivo.targetAmount)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Vincular esta viagem a um objetivo financeiro
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data de Início</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: pt })
+                        ) : (
+                          <span>Selecione a data</span>
                         )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`destinos.${index}.pais`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>País</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="endDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data de Término</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: pt })
+                        ) : (
+                          <span>Selecione a data</span>
                         )}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <FormField
-                        control={form.control}
-                        name={`destinos.${index}.dataChegada`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Data de Chegada</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`destinos.${index}.dataPartida`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Data de Partida</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`destinos.${index}.hospedagem`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Hospedagem (opcional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Hotel, Airbnb, etc." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`destinos.${index}.observacoes`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Observações (opcional)</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Notas sobre o destino, pontos turísticos, etc."
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    {/* Adicionar botão para adicionar locomoção se não for o último destino */}
-                    {index < destinoFields.length - 1 && (
-                      <div className="mt-4 border-t pt-4 flex justify-center">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            appendLocomocao({
-                              tipo: "aviao",
-                              origemIndex: index,
-                              destinoIndex: index + 1,
-                              dataPartida: form.getValues(`destinos.${index}.dataPartida`),
-                              horaPartida: "10:00",
-                              dataChegada: form.getValues(`destinos.${index + 1}.dataChegada`),
-                              horaChegada: "12:00",
-                              preco: "0"
-                            });
-                          }}
-                        >
-                          <Plane className="mr-1 h-4 w-4" /> Adicionar Transporte para o Próximo Destino
-                        </Button>
-                      </div>
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                      disabled={(date) =>
+                        date < new Date(form.getValues("startDate"))
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="budget"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Orçamento</FormLabel>
+                <div className="flex">
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="5000.00" 
+                      {...field}
+                      // Ensure the field value is treated as a number
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value}
+                    />
+                  </FormControl>
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    size="icon"
+                    className="ml-2"
+                    onClick={() => setShowCurrencyConverter(prev => !prev)}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                  </Button>
+                </div>
+                <FormDescription>
+                  Orçamento total para a viagem em Reais (R$)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        {showCurrencyConverter && (
+          <div className="my-6">
+            <CurrencyConverter simple />
+          </div>
+        )}
+        
+        <div>
+          <h3 className="text-lg font-medium mb-4">Destinos</h3>
+          
+          {destinosFields.map((destinoField, index) => (
+            <Card key={destinoField.id} className="mb-6">
+              <CardHeader className="flex flex-row items-center justify-between py-3">
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2 text-primary" />
+                  <CardTitle className="text-base">
+                    Destino {index + 1}
+                  </CardTitle>
+                </div>
+                {index > 0 && (
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => removeDestino(index)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Remover
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`destinos.${index}.cidade`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cidade</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Paris" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name={`destinos.${index}.pais`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>País</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: França" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name={`destinos.${index}.dataChegada`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data de Chegada</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: pt })
+                                ) : (
+                                  <span>Selecione a data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                              disabled={(date) =>
+                                date < new Date(form.getValues("startDate")) ||
+                                date > new Date(form.getValues("endDate"))
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name={`destinos.${index}.dataPartida`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data de Partida</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: pt })
+                                ) : (
+                                  <span>Selecione a data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                              disabled={(date) =>
+                                date < new Date(form.getValues(`destinos.${index}.dataChegada`)) ||
+                                date > new Date(form.getValues("endDate"))
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name={`destinos.${index}.hospedagem`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hospedagem</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Hotel Miramar" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name={`destinos.${index}.observacoes`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Observações</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Detalhes adicionais sobre este destino"
+                          className="resize-none"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          ))}
           
-          {/* Locomoções */}
-          {locomocaoFields.length > 0 && (
-            <div className="md:col-span-2">
-              <h3 className="text-lg font-medium mb-4">Transportes entre Destinos</h3>
-              
-              <div className="space-y-4">
-                {locomocaoFields.map((locomocao, index) => (
-                  <Card key={locomocao.id} className="relative">
-                    <CardContent className="pt-6">
-                      <div className="absolute top-2 right-2">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => removeLocomocao(index)}
-                          className="h-7 w-7 text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-muted/50 p-3 rounded-md mb-4">
-                        <p className="text-sm font-medium">
-                          De: {form.getValues(`destinos.${locomocao.origemIndex}.cidade`)},{" "}
-                          {form.getValues(`destinos.${locomocao.origemIndex}.pais`)}
-                        </p>
-                        <p className="text-sm font-medium">
-                          Para: {form.getValues(`destinos.${locomocao.destinoIndex}.cidade`)},{" "}
-                          {form.getValues(`destinos.${locomocao.destinoIndex}.pais`)}
-                        </p>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.tipo`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Tipo de Transporte</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {tiposLocomocao.map((tipo) => (
-                                    <SelectItem key={tipo.value} value={tipo.value}>
-                                      <div className="flex items-center">
-                                        {tipo.icon && <span className="mr-2">{tipo.icon}</span>}
-                                        {tipo.label}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.companhia`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Companhia (opcional)</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Nome da empresa" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.numeroVoo`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Número do Voo/Reserva</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Ex: LA1234" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.dataPartida`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Data de Partida</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.horaPartida`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Hora de Partida</FormLabel>
-                              <FormControl>
-                                <Input type="time" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.dataChegada`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Data de Chegada</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.horaChegada`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Hora de Chegada</FormLabel>
-                              <FormControl>
-                                <Input type="time" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.preco`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Preço (R$)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="0" 
-                                  step="0.01" 
-                                  placeholder="0.00" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name={`locomocoes.${index}.observacoes`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Observações (opcional)</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Notas adicionais" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => 
+              appendDestino({
+                cidade: "",
+                pais: "",
+                dataChegada: new Date(),
+                dataPartida: new Date(new Date().setDate(new Date().getDate() + 1)),
+              })
+            }
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Destino
+          </Button>
         </div>
         
         <Separator />
         
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-end space-x-4 pt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Salvando..." : isEdit ? "Atualizar" : "Salvar"}
+            {isSubmitting ? "Salvando..." : isEdit ? "Atualizar Viagem" : "Adicionar Viagem"}
           </Button>
         </div>
       </form>
     </Form>
   );
-}
+};
+
+export default ViagemForm;
