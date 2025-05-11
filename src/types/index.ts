@@ -32,3 +32,41 @@ export interface Objetivo {
   icon: string;
   color: string;
 }
+
+// Tipo para viagens
+export interface Viagem {
+  id: string;
+  nome: string;
+  startDate: string;
+  endDate: string;
+  objetivo?: string; // ID do objetivo relacionado
+  destinos: Destino[];
+  budget: number;
+}
+
+// Tipo para destinos em uma viagem
+export interface Destino {
+  id: string;
+  cidade: string;
+  pais: string;
+  dataChegada: string;
+  dataPartida: string;
+  hospedagem?: string;
+  observacoes?: string;
+}
+
+// Tipo para locomoção entre destinos
+export interface Locomocao {
+  id: string;
+  tipo: 'aviao' | 'trem' | 'onibus' | 'carro' | 'barco' | 'outro';
+  origem: string; // ID do destino de origem
+  destino: string; // ID do destino de destino
+  dataPartida: string;
+  horaPartida: string;
+  dataChegada: string;
+  horaChegada: string;
+  companhia?: string;
+  numeroVoo?: string;
+  preco: number;
+  observacoes?: string;
+}

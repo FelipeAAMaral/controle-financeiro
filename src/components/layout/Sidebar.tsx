@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { 
   Home, PieChart, CalendarDays, FileText, User, LogOut,
-  BarChart, Settings, Wallet, PiggyBank, ChevronLeft, ChevronRight
+  BarChart, Settings, Wallet, PiggyBank, ChevronLeft, ChevronRight, Plane
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -134,6 +134,9 @@ const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
             </SidebarLink>
             <SidebarLink to="/transacoes" icon={<Wallet size={18} />} collapsed={!open}>
               Transações
+            </SidebarLink>
+            <SidebarLink to="/viagens" icon={<Plane size={18} />} collapsed={!open}>
+              Viagens
             </SidebarLink>
             
             {open && (

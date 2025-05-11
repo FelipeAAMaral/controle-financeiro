@@ -13,14 +13,14 @@ const expenseData = [
   { name: "Outros", value: 150, color: "#00C49F" },
 ];
 
-// Dados de exemplo para fluxo de caixa mensal (separados em dinheiro e benefícios)
+// Dados de exemplo para fluxo de caixa mensal (combinados em entradas e saídas)
 const cashFlowData = [
-  { month: "Jan", entradaDinheiro: 4500, saidaDinheiro: 3400, entradaBeneficio: 0, saidaBeneficio: 400 },
-  { month: "Fev", entradaDinheiro: 4500, saidaDinheiro: 3500, entradaBeneficio: 0, saidaBeneficio: 400 },
-  { month: "Mar", entradaDinheiro: 4800, saidaDinheiro: 3700, entradaBeneficio: 0, saidaBeneficio: 400 },
-  { month: "Abr", entradaDinheiro: 4700, saidaDinheiro: 3550, entradaBeneficio: 0, saidaBeneficio: 400 },
-  { month: "Mai", entradaDinheiro: 4600, saidaDinheiro: 3400, entradaBeneficio: 0, saidaBeneficio: 400 },
-  { month: "Jun", entradaDinheiro: 5200, saidaDinheiro: 3600, entradaBeneficio: 0, saidaBeneficio: 400 },
+  { month: "Jan", entradaDinheiro: 4500, entradaBeneficio: 400, saidaDinheiro: 3400, saidaBeneficio: 400 },
+  { month: "Fev", entradaDinheiro: 4500, entradaBeneficio: 400, saidaDinheiro: 3500, saidaBeneficio: 400 },
+  { month: "Mar", entradaDinheiro: 4800, entradaBeneficio: 400, saidaDinheiro: 3700, saidaBeneficio: 400 },
+  { month: "Abr", entradaDinheiro: 4700, entradaBeneficio: 400, saidaDinheiro: 3550, saidaBeneficio: 400 },
+  { month: "Mai", entradaDinheiro: 4600, entradaBeneficio: 400, saidaDinheiro: 3400, saidaBeneficio: 400 },
+  { month: "Jun", entradaDinheiro: 5200, entradaBeneficio: 400, saidaDinheiro: 3600, saidaBeneficio: 400 },
 ];
 
 // Dados de exemplo para evolução do patrimônio
@@ -108,10 +108,33 @@ const FinancialOverview = () => {
                     )} 
                   />
                   <Legend />
-                  <Bar dataKey="entradaDinheiro" name="Entrada (Dinheiro)" fill="#4ade80" />
-                  <Bar dataKey="entradaBeneficio" name="Entrada (Benefício)" fill="#a7f3d0" />
-                  <Bar dataKey="saidaDinheiro" name="Saída (Dinheiro)" fill="#f87171" />
-                  <Bar dataKey="saidaBeneficio" name="Saída (Benefício)" fill="#fecaca" />
+                  {/* Combinação de entradas em uma coluna com cores diferentes */}
+                  <Bar 
+                    name="Entradas (Total)" 
+                    stackId="entrada"
+                    dataKey="entradaDinheiro" 
+                    fill="#4ade80" 
+                  />
+                  <Bar 
+                    name="Entradas (Benefício)" 
+                    stackId="entrada"
+                    dataKey="entradaBeneficio" 
+                    fill="#a7f3d0" 
+                  />
+                  
+                  {/* Combinação de saídas em uma coluna com cores diferentes */}
+                  <Bar 
+                    name="Saídas (Total)" 
+                    stackId="saida"
+                    dataKey="saidaDinheiro" 
+                    fill="#f87171" 
+                  />
+                  <Bar 
+                    name="Saídas (Benefício)" 
+                    stackId="saida"
+                    dataKey="saidaBeneficio" 
+                    fill="#fecaca" 
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
