@@ -1,14 +1,16 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, MapPin, Plane, Plus, Clock, ArrowRight } from "lucide-react";
+import { CalendarDays, MapPin, Plane, Plus, Clock, ArrowRight, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Viagem } from "@/types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import ImportarVooForm from "@/components/viagens/ImportarVooForm";
+import { iniciarPollingReservas } from "@/services/ReservasService";
 
 // Mock data
 const mockViagens: Viagem[] = [
@@ -208,12 +210,57 @@ const mockVoos = [
 const Viagens = () => {
   const navigate = useNavigate();
   const [viagens] = useState<Viagem[]>(mockViagens);
-  const [voos] = useState(mockVoos);
+  const [voos, setVoos] = useState(mockVoos);
   const [activeTab, setActiveTab] = useState("todas");
   const [visualizacao, setVisualizacao] = useState<"lista" | "voos">("lista");
+  const [isImportFormOpen, setIsImportFormOpen] = useState(false);
+  const [atualizandoReservas, setAtualizandoReservas] = useState(false);
+
+  useEffect(() => {
+    // Iniciar o polling para verificação automática das reservas
+    const cancelarPolling = iniciarPollingReservas((voosAtualizados, viagemId) => {
+      setVoos(prevVoos => {
+        // Filtrar os voos da viagem que foram atualizados
+        const voosNaoAtualizados = prevVoos.filter(v => 
+          !(v.viagemId === viagemId && voosAtualizados.some(va => va.numeroVoo === v.numeroVoo))
+        );
+        
+        // Adicionar os voos atualizados
+        const novosVoos = [...voosNaoAtualizados, ...voosAtualizados];
+        
+        // Notificar o usuário sobre a atualização
+        toast.info(`Informações de voo atualizadas para a viagem ${
+          viagens.find(v => v.id === viagemId)?.nome || viagemId
+        }`);
+        
+        return novosVoos;
+      });
+    });
+    
+    // Limpar o polling quando o componente for desmontado
+    return () => {
+      cancelarPolling();
+    };
+  }, [viagens]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  // Função para lidar com voos importados
+  const handleVoosImportados = (novosVoos: any[]) => {
+    setVoos(prev => [...prev, ...novosVoos]);
+  };
+
+  // Verificar manualmente as reservas
+  const verificarReservas = () => {
+    setAtualizandoReservas(true);
+    
+    // Simular verificação
+    setTimeout(() => {
+      toast.success("Verificação concluída. Todas as informações estão atualizadas.");
+      setAtualizandoReservas(false);
+    }, 1000);
   };
 
   // Filtrar viagens baseado na aba selecionada
@@ -291,6 +338,36 @@ const Viagens = () => {
             <TabsTrigger value="passadas">Passadas</TabsTrigger>
           </TabsList>
         </div>
+        
+        {visualizacao === "voos" && (
+          <div className="flex justify-between items-center pt-4">
+            <div className="text-sm text-muted-foreground">
+              Visualizando {voosFiltrados.length} voos
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={verificarReservas}
+                disabled={atualizandoReservas}
+              >
+                {atualizandoReservas ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Atualizar Reservas
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => setIsImportFormOpen(true)}
+              >
+                <Plane className="mr-2 h-4 w-4" />
+                Importar Voos
+              </Button>
+            </div>
+          </div>
+        )}
         
         {visualizacao === "lista" ? (
           <TabsContent value="todas" className="pt-4">
@@ -475,8 +552,16 @@ const Viagens = () => {
                   <Plane className="h-10 w-10 text-muted-foreground mb-3" />
                   <h3 className="text-lg font-medium">Nenhum voo encontrado</h3>
                   <p className="text-muted-foreground">
-                    Adicione voos às suas viagens para visualizá-los aqui
+                    Adicione voos às suas viagens ou importe usando seu código de reserva
                   </p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setIsImportFormOpen(true)}
+                  >
+                    <Plane className="mr-2 h-4 w-4" />
+                    Importar Voos
+                  </Button>
                 </div>
               )}
             </div>
@@ -519,6 +604,13 @@ const Viagens = () => {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Modal de importação de voos */}
+      <ImportarVooForm
+        open={isImportFormOpen}
+        onOpenChange={setIsImportFormOpen}
+        onSuccess={handleVoosImportados}
+      />
     </div>
   );
 };
