@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, Hotel, Plane, Clock, ArrowRight } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Hotel, Plane, Clock, ArrowRight, Calculator } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -154,9 +154,18 @@ export default function DetalhesViagem() {
           </div>
         </div>
         
-        <Button onClick={() => navigate(`/viagens/editar/${viagem.id}`)}>
-          Editar Viagem
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline"
+            onClick={() => navigate(`/viagens/${viagem.id}/planejamento-gastos`)}
+          >
+            <Calculator className="h-4 w-4 mr-2" />
+            Planejamento de Gastos
+          </Button>
+          <Button onClick={() => navigate(`/viagens/editar/${viagem.id}`)}>
+            Editar Viagem
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -340,6 +349,17 @@ export default function DetalhesViagem() {
                       <Badge key={pais} variant="secondary">{pais}</Badge>
                     ))}
                   </dd>
+                </div>
+                
+                <div className="pt-4">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => navigate(`/viagens/${viagem.id}/planejamento-gastos`)}
+                  >
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Planejamento de Gastos
+                  </Button>
                 </div>
               </dl>
             </CardContent>

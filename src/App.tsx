@@ -24,6 +24,13 @@ import Transacoes from "./pages/Transacoes";
 import Perfil from "./pages/Perfil";
 import Configuracoes from "./pages/Configuracoes";
 
+// Páginas de Viagens
+import Viagens from "./pages/Viagens";
+import NovaViagem from "./pages/NovaViagem";
+import EditarViagem from "./pages/EditarViagem";
+import DetalhesViagem from "./pages/DetalhesViagem";
+import PlanejamentoGastos from "./pages/PlanejamentoGastos";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -109,6 +116,48 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Configuracoes />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Rotas de Viagens */}
+              <Route 
+                path="/viagens" 
+                element={
+                  <ProtectedRoute>
+                    <Viagens />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/viagens/nova" 
+                element={
+                  <ProtectedRoute>
+                    <NovaViagem />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/viagens/:id" 
+                element={
+                  <ProtectedRoute>
+                    <DetalhesViagem />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/viagens/editar/:id" 
+                element={
+                  <ProtectedRoute>
+                    <EditarViagem />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/viagens/:id/planejamento-gastos" 
+                element={
+                  <ProtectedRoute>
+                    <PlanejamentoGastos />
                   </ProtectedRoute>
                 } 
               />

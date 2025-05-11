@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,174 +14,149 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Calculator } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Calculator } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { PlanejamentoGastoViagem, CotacaoMoeda } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Destino, PlanejamentoGastoViagem } from "@/types";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Mock de cotações de moedas
-const mockCotacoes: CotacaoMoeda[] = [
-  { codigo: "USD", nome: "Dólar Americano", valor: 5.50, dataAtualizacao: new Date().toISOString() },
-  { codigo: "EUR", nome: "Euro", valor: 6.20, dataAtualizacao: new Date().toISOString() },
-  { codigo: "GBP", nome: "Libra Esterlina", valor: 7.30, dataAtualizacao: new Date().toISOString() },
-  { codigo: "JPY", nome: "Iene Japonês", valor: 0.049, dataAtualizacao: new Date().toISOString() },
-  { codigo: "AUD", nome: "Dólar Australiano", valor: 3.85, dataAtualizacao: new Date().toISOString() },
-  { codigo: "CAD", nome: "Dólar Canadense", valor: 4.05, dataAtualizacao: new Date().toISOString() },
-  { codigo: "CHF", nome: "Franco Suíço", valor: 6.45, dataAtualizacao: new Date().toISOString() },
-  { codigo: "CNY", nome: "Yuan Chinês", valor: 0.84, dataAtualizacao: new Date().toISOString() },
-  { codigo: "ARS", nome: "Peso Argentino", valor: 0.063, dataAtualizacao: new Date().toISOString() },
+const mockCotacoes = [
+  { codigo: "USD", nome: "Dólar Americano", valor: 5.05 },
+  { codigo: "EUR", nome: "Euro", valor: 5.50 },
+  { codigo: "GBP", nome: "Libra Esterlina", valor: 6.45 },
+  { codigo: "JPY", nome: "Iene Japonês", valor: 0.035 },
+  { codigo: "CAD", nome: "Dólar Canadense", valor: 3.75 },
+  { codigo: "AUD", nome: "Dólar Australiano", valor: 3.35 },
 ];
 
-const CATEGORIAS_GASTOS = [
-  "Hospedagem",
-  "Alimentação",
-  "Transporte",
-  "Passeios",
-  "Compras",
-  "Ingressos",
-  "Seguro Viagem",
+// Categorias de gastos comuns em viagens
+const categorias = [
+  "Hospedagem", 
+  "Alimentação", 
+  "Transporte", 
+  "Passeios", 
+  "Compras", 
+  "Ingressos", 
+  "Seguro Viagem", 
   "Outros"
 ];
 
-const planejamentoSchema = z.object({
-  id: z.string().optional(),
-  viagemId: z.string(),
-  categoria: z.string(),
+// Esquema de validação para o formulário
+const planejamentoGastoSchema = z.object({
+  categoria: z.string({
+    required_error: "Selecione uma categoria",
+  }),
   descricao: z.string().min(3, { message: "Descrição deve ter pelo menos 3 caracteres" }),
-  valor: z.number().positive({ message: "Valor deve ser positivo" }),
-  moedaOrigem: z.string(),
-  moedaDestino: z.string(),
+  valor: z.number({
+    required_error: "Valor é obrigatório",
+    invalid_type_error: "Valor deve ser um número",
+  }).positive({ message: "Valor deve ser positivo" }),
+  moedaOrigem: z.string({
+    required_error: "Selecione a moeda",
+  }),
+  moedaDestino: z.string({
+    required_error: "Selecione a moeda de conversão",
+  }),
+  taxaConversao: z.number().optional(),
+  taxaIOF: z.number().optional(),
+  taxaBancaria: z.number().optional(),
   data: z.date().optional(),
-  observacoes: z.string().optional()
 });
 
-type PlanejamentoFormValues = z.infer<typeof planejamentoSchema>;
+type PlanejamentoGastoFormValues = z.infer<typeof planejamentoGastoSchema>;
 
 interface PlanejamentoGastosFormProps {
-  viagemId: string;
-  initialData?: PlanejamentoGastoViagem;
-  onSubmit: (data: any) => void;
-  onClose: () => void;
+  onSubmit: (data: PlanejamentoGastoViagem) => void;
   isSubmitting: boolean;
-  isEdit?: boolean;
+  destinos: Destino[];
 }
 
 const PlanejamentoGastosForm = ({
-  viagemId,
-  initialData,
   onSubmit,
-  onClose,
   isSubmitting,
-  isEdit = false
+  destinos,
 }: PlanejamentoGastosFormProps) => {
-  const [valorConvertido, setValorConvertido] = useState<number>(0);
-  const [taxaConversao, setTaxaConversao] = useState<number>(0);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [valorConvertido, setValorConvertido] = useState<number | null>(null);
   
-  const form = useForm<PlanejamentoFormValues>({
-    resolver: zodResolver(planejamentoSchema),
-    defaultValues: initialData ? {
-      ...initialData,
-      data: initialData.data ? new Date(initialData.data) : undefined,
-      viagemId: initialData.viagemId
-    } : {
-      viagemId,
-      categoria: CATEGORIAS_GASTOS[0],
+  const form = useForm<PlanejamentoGastoFormValues>({
+    resolver: zodResolver(planejamentoGastoSchema),
+    defaultValues: {
+      categoria: "",
       descricao: "",
       valor: 0,
-      moedaOrigem: "BRL",
-      moedaDestino: "USD",
-    }
+      moedaOrigem: "EUR", // Assumindo que a maioria das viagens usam Euro
+      moedaDestino: "BRL", // Convertendo para Real
+      taxaIOF: 6.38, // IOF padrão para compras no exterior
+      taxaBancaria: 4, // Taxa bancária média
+      data: new Date(),
+    },
   });
   
-  // Observa mudanças nos valores relevantes para calcular a conversão
-  const watchValor = form.watch("valor");
-  const watchMoedaOrigem = form.watch("moedaOrigem");
-  const watchMoedaDestino = form.watch("moedaDestino");
+  const moedaOrigem = form.watch("moedaOrigem");
+  const moedaDestino = form.watch("moedaDestino");
+  const valor = form.watch("valor");
+  const taxaIOF = form.watch("taxaIOF");
+  const taxaBancaria = form.watch("taxaBancaria");
   
-  // Calcula a conversão de moeda
-  const calcularConversao = () => {
-    let taxaIOF = 6.38; // IOF para operações internacionais
-    let taxaBancaria = 4; // Taxa bancária média
-    
-    // Obter as cotações das moedas
-    let cotacaoOrigem = watchMoedaOrigem === "BRL" ? 1 : mockCotacoes.find(c => c.codigo === watchMoedaOrigem)?.valor || 1;
-    let cotacaoDestino = watchMoedaDestino === "BRL" ? 1 : mockCotacoes.find(c => c.codigo === watchMoedaDestino)?.valor || 1;
-    
-    // Calcular taxa de conversão
-    let taxa = 0;
-    if (watchMoedaOrigem === "BRL" && watchMoedaDestino !== "BRL") {
-      taxa = 1 / cotacaoDestino;
-    } else if (watchMoedaOrigem !== "BRL" && watchMoedaDestino === "BRL") {
-      taxa = cotacaoOrigem;
-    } else if (watchMoedaOrigem !== "BRL" && watchMoedaDestino !== "BRL") {
-      taxa = cotacaoOrigem / cotacaoDestino;
-    }
-    
-    setTaxaConversao(taxa);
-    
-    // Calcular valor convertido considerando as taxas
-    const taxaTotal = (watchMoedaOrigem !== watchMoedaDestino) ? (1 - ((taxaIOF + taxaBancaria) / 100)) : 1;
-    const valorFinal = watchValor * taxa * taxaTotal;
-    
-    setValorConvertido(valorFinal);
-    
-    return {
-      valorConvertido: valorFinal,
-      taxaConversao: taxa,
-      taxaIOF,
-      taxaBancaria
-    };
-  };
-  
-  // Recalcular sempre que os valores mudarem
+  // Atualizar o valor convertido quando os valores mudarem
   useEffect(() => {
-    if (watchValor > 0) {
-      calcularConversao();
+    if (valor && moedaOrigem && moedaDestino) {
+      const cotacaoOrigem = moedaOrigem === "BRL" 
+        ? 1 
+        : mockCotacoes.find(c => c.codigo === moedaOrigem)?.valor || 0;
+      
+      const cotacaoDestino = moedaDestino === "BRL" 
+        ? 1 
+        : mockCotacoes.find(c => c.codigo === moedaDestino)?.valor || 0;
+      
+      // Primeira conversão para BRL (se necessário)
+      let valorEmReais = moedaOrigem === "BRL" ? valor : valor * cotacaoOrigem;
+      
+      // Adicionar IOF e taxa bancária se estiver convertendo de outra moeda para BRL
+      if (moedaOrigem !== "BRL" && moedaDestino === "BRL" && taxaIOF && taxaBancaria) {
+        const valorIOF = (valorEmReais * taxaIOF) / 100;
+        const valorTaxaBancaria = (valorEmReais * taxaBancaria) / 100;
+        valorEmReais = valorEmReais + valorIOF + valorTaxaBancaria;
+      }
+      
+      // Converter de BRL para a moeda de destino (se necessário)
+      const valorFinal = moedaDestino === "BRL" 
+        ? valorEmReais 
+        : valorEmReais / cotacaoDestino;
+      
+      setValorConvertido(Number(valorFinal.toFixed(2)));
+      
+      // Atualizar a taxa de conversão no formulário
+      form.setValue("taxaConversao", moedaOrigem === moedaDestino 
+        ? 1 
+        : Number((cotacaoDestino / cotacaoOrigem).toFixed(4)));
     }
-  }, [watchValor, watchMoedaOrigem, watchMoedaDestino]);
+  }, [valor, moedaOrigem, moedaDestino, taxaIOF, taxaBancaria, form]);
   
-  const handleSubmit = (values: PlanejamentoFormValues) => {
-    const conversao = calcularConversao();
-    
-    // Preparar os dados para enviar
-    const data = {
-      ...values,
-      data: values.data ? format(values.data, 'yyyy-MM-dd') : undefined,
-      valorConvertido: conversao.valorConvertido,
-      taxaConversao: conversao.taxaConversao,
-      taxaIOF: conversao.taxaIOF,
-      taxaBancaria: conversao.taxaBancaria,
-      id: initialData?.id || `gasto-${Date.now()}`,
-    };
-    
-    onSubmit(data);
-  };
-  
-  // Formatar moeda
-  const formatarMoeda = (valor: number, moeda: string) => {
-    if (moeda === "BRL") {
-      return new Intl.NumberFormat('pt-BR', { 
-        style: 'currency', 
-        currency: 'BRL' 
-      }).format(valor);
+  const handleSubmit = (values: PlanejamentoGastoFormValues) => {
+    if (valorConvertido) {
+      const data = {
+        ...values,
+        valorConvertido,
+        id: "", // será preenchido pelo backend
+        viagemId: "", // será preenchido pelo componente pai
+      };
+      onSubmit(data);
+      form.reset();
     }
-    
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: moeda 
-    }).format(valor);
   };
   
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="categoria"
@@ -189,11 +166,11 @@ const PlanejamentoGastosForm = ({
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
+                      <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {CATEGORIAS_GASTOS.map((categoria) => (
+                    {categorias.map((categoria) => (
                       <SelectItem key={categoria} value={categoria}>
                         {categoria}
                       </SelectItem>
@@ -212,7 +189,7 @@ const PlanejamentoGastosForm = ({
               <FormItem>
                 <FormLabel>Descrição</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ex: Jantar no restaurante X" {...field} />
+                  <Input placeholder="Ex: Hospedagem em hotel" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -227,10 +204,12 @@ const PlanejamentoGastosForm = ({
                 <FormLabel>Valor</FormLabel>
                 <FormControl>
                   <Input 
-                    type="number" 
+                    type="number"
                     placeholder="100.00" 
                     {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    // Ensure the field value is treated as a number
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -252,13 +231,16 @@ const PlanejamentoGastosForm = ({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="BRL">Real (BRL)</SelectItem>
-                    {mockCotacoes.map((moeda) => (
-                      <SelectItem key={moeda.codigo} value={moeda.codigo}>
-                        {moeda.nome} ({moeda.codigo})
+                    {mockCotacoes.map((cotacao) => (
+                      <SelectItem key={cotacao.codigo} value={cotacao.codigo}>
+                        {cotacao.nome} ({cotacao.codigo})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  Moeda em que o gasto será realizado
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -269,22 +251,25 @@ const PlanejamentoGastosForm = ({
             name="moedaDestino"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Converter Para</FormLabel>
+                <FormLabel>Converter para</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a moeda" />
+                      <SelectValue placeholder="Selecione a moeda de conversão" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="BRL">Real (BRL)</SelectItem>
-                    {mockCotacoes.map((moeda) => (
-                      <SelectItem key={moeda.codigo} value={moeda.codigo}>
-                        {moeda.nome} ({moeda.codigo})
+                    {mockCotacoes.map((cotacao) => (
+                      <SelectItem key={cotacao.codigo} value={cotacao.codigo}>
+                        {cotacao.nome} ({cotacao.codigo})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  Moeda para qual deseja converter o valor
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -295,7 +280,7 @@ const PlanejamentoGastosForm = ({
             name="data"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data do Gasto (opcional)</FormLabel>
+                <FormLabel>Data do Gasto</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -322,7 +307,7 @@ const PlanejamentoGastosForm = ({
                   </PopoverContent>
                 </Popover>
                 <FormDescription>
-                  Data prevista para este gasto
+                  Data em que o gasto será realizado
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -330,75 +315,100 @@ const PlanejamentoGastosForm = ({
           />
         </div>
         
-        <FormField
-          control={form.control}
-          name="observacoes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Observações adicionais sobre este gasto"
-                  className="resize-none"
-                  {...field}
-                  value={field.value || ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-medium">Resultado da Conversão</h3>
+                <p className="text-muted-foreground text-sm">
+                  Taxa de câmbio atual: 1 {moedaOrigem} = {
+                    moedaDestino === "BRL" ? 
+                      mockCotacoes.find(c => c.codigo === moedaOrigem)?.valor : 
+                      (mockCotacoes.find(c => c.codigo === moedaDestino)?.valor || 0) / 
+                      (mockCotacoes.find(c => c.codigo === moedaOrigem)?.valor || 1)
+                  } {moedaDestino}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold">
+                  {valorConvertido !== null ? 
+                    new Intl.NumberFormat('pt-BR', { 
+                      style: 'decimal',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(valorConvertido) : 
+                    "0,00"} {moedaDestino}
+                </p>
+                {moedaOrigem !== moedaDestino && (
+                  <p className="text-sm text-muted-foreground">
+                    {valor} {moedaOrigem}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         
-        {watchValor > 0 && watchMoedaOrigem !== watchMoedaDestino && (
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center">
-                  <Calculator className="h-4 w-4 mr-2 text-muted-foreground" /> 
-                  Resumo da Conversão
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  Atualizado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm")}
-                </span>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="advanced">
+            <AccordionTrigger>
+              Opções Avançadas de Conversão
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <FormField
+                  control={form.control}
+                  name="taxaIOF"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Taxa de IOF (%)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        IOF para compras internacionais (6,38% padrão)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="taxaBancaria"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Taxa Bancária (%)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Taxas adicionais de cartão/banco (4% média)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between text-sm">
-                    <span>Valor original:</span>
-                    <span className="font-medium">{formatarMoeda(watchValor, watchMoedaOrigem)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Taxa de conversão:</span>
-                    <span className="font-medium">
-                      1 {watchMoedaOrigem} = {taxaConversao.toFixed(4)} {watchMoedaDestino}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm">
-                    <span>Taxa IOF (6,38%):</span>
-                    <span className="font-medium">{formatarMoeda(watchValor * taxaConversao * 0.0638, watchMoedaDestino)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Taxa bancária (4%):</span>
-                    <span className="font-medium">{formatarMoeda(watchValor * taxaConversao * 0.04, watchMoedaDestino)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-between pt-2 border-t text-base font-bold">
-                <span>Valor convertido:</span>
-                <span>{formatarMoeda(valorConvertido, watchMoedaDestino)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
         
         <div className="flex justify-end space-x-4 pt-4">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancelar
-          </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Salvando..." : isEdit ? "Atualizar Gasto" : "Adicionar Gasto"}
+            {isSubmitting ? "Adicionando..." : "Adicionar ao Planejamento"}
           </Button>
         </div>
       </form>
