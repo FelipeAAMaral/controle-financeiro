@@ -1,5 +1,5 @@
 
-import { Menu, Bell } from "lucide-react";
+import { Menu, Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,18 +12,19 @@ import {
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
+  sidebarOpen: boolean;
 }
 
-const MobileHeader = ({ onMenuClick }: MobileHeaderProps) => {
+const MobileHeader = ({ onMenuClick, sidebarOpen }: MobileHeaderProps) => {
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 border-b bg-white shadow-sm">
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Menu"
+        aria-label={sidebarOpen ? "Close Menu" : "Open Menu"}
         onClick={onMenuClick}
       >
-        <Menu />
+        {sidebarOpen ? <X /> : <Menu />}
       </Button>
 
       <h1 className="text-lg font-bold text-primary">FinançasPro</h1>

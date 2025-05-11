@@ -1,5 +1,5 @@
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import MobileHeader from "./MobileHeader";
@@ -10,13 +10,25 @@ interface MainLayoutProps {
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    // Get the sidebar state from localStorage or default to true on desktop, false on mobile
+    const savedState = localStorage.getItem("sidebar-state");
+    return savedState ? savedState === "open" : !window.matchMedia("(max-width: 768px)").matches;
+  });
+  
   const isMobile = useIsMobile();
   const location = useLocation();
   
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    const newState = !sidebarOpen;
+    setSidebarOpen(newState);
+    localStorage.setItem("sidebar-state", newState ? "open" : "closed");
   };
+
+  // Save sidebar state on change
+  useEffect(() => {
+    localStorage.setItem("sidebar-state", sidebarOpen ? "open" : "closed");
+  }, [sidebarOpen]);
 
   // Check if user is on auth pages
   const isAuthPage = ['/login', '/register', '/forgot-password'].includes(location.pathname);
@@ -28,10 +40,19 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <Sidebar open={!isMobile || sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar 
+        open={sidebarOpen} 
+        onClose={() => isMobile && setSidebarOpen(false)} 
+        onToggle={toggleSidebar}
+      />
       
-      <div className="flex-1 flex flex-col">
-        {isMobile && <MobileHeader onMenuClick={toggleSidebar} />}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
+        {isMobile && (
+          <MobileHeader 
+            onMenuClick={toggleSidebar} 
+            sidebarOpen={sidebarOpen}
+          />
+        )}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-20">
           {children}
         </main>

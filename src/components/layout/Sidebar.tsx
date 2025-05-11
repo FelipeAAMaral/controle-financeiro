@@ -2,8 +2,8 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { 
-  Home, PieChart, CalendarDays, FileText, Plus, User, LogOut,
-  BarChart, Settings, Wallet, PiggyBank
+  Home, PieChart, CalendarDays, FileText, User, LogOut,
+  BarChart, Settings, Wallet, PiggyBank, ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
+  onToggle: () => void;
 }
 
 interface SidebarLinkProps {
@@ -39,7 +40,7 @@ const SidebarLink = ({ to, icon, children, end = false }: SidebarLinkProps) => (
   </NavLink>
 );
 
-const Sidebar = ({ open, onClose }: SidebarProps) => {
+const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
   const { logout } = useAuth();
 
   const handleLogout = async () => {
@@ -60,14 +61,25 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out",
-          "lg:translate-x-0 lg:static lg:z-0",
+          "lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="p-4 border-b">
-            <h1 className="text-xl font-bold text-primary">FinançasPro</h1>
-            <p className="text-xs text-gray-500">Gestão financeira simplificada</p>
+          <div className="p-4 border-b flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold text-primary">FinançasPro</h1>
+              <p className="text-xs text-gray-500">Gestão financeira simplificada</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggle}
+              className="hidden lg:flex"
+              aria-label="Toggle sidebar"
+            >
+              <ChevronLeft className={`transform transition-transform ${!open && 'rotate-180'}`} />
+            </Button>
           </div>
           
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">

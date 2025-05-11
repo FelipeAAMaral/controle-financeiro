@@ -8,6 +8,7 @@ interface User {
   email: string;
   name: string | null;
   photoURL: string | null;
+  provider?: 'email' | 'google';
 }
 
 interface AuthContextType {
@@ -59,7 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: "user-123",
           email,
           name: email.split('@')[0],
-          photoURL: null
+          photoURL: null,
+          provider: 'email' as const
         };
         
         setUser(mockUser);
@@ -91,7 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: "google-user-123",
         email: "usuario@gmail.com",
         name: "Usuário Google",
-        photoURL: "https://ui-avatars.com/api/?name=Usuario+Google&background=random"
+        photoURL: "https://ui-avatars.com/api/?name=Usuario+Google&background=random",
+        provider: 'google' as const
       };
       
       setUser(mockUser);
@@ -121,7 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: "user-" + Date.now().toString(),
           email,
           name,
-          photoURL: null
+          photoURL: null,
+          provider: 'email' as const
         };
         
         setUser(mockUser);
