@@ -108,9 +108,6 @@ const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
             <SidebarLink to="/" icon={<Home size={18} />} end collapsed={!open}>
               Dashboard
             </SidebarLink>
-            <SidebarLink to="/saude-financeira" icon={<PieChart size={18} />} collapsed={!open}>
-              Saúde Financeira
-            </SidebarLink>
             <SidebarLink to="/controle-mensal" icon={<CalendarDays size={18} />} collapsed={!open}>
               Controle Mensal
             </SidebarLink>

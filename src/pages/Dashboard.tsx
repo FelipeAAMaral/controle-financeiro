@@ -1,25 +1,20 @@
 
 import { useState, useEffect } from "react";
-import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, Plus, PiggyBank, TrendingUp } from "lucide-react";
+import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import FinancialTips from "@/components/dashboard/FinancialTips";
 import FinancialGoals from "@/components/dashboard/FinancialGoals";
 import FinancialOverview from "@/components/dashboard/FinancialOverview";
-import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const handleAddTransaction = () => {
-    navigate("/transacoes/nova");
-  };
 
   const [totalPatrimonio, setTotalPatrimonio] = useState(0);
 
@@ -35,6 +30,11 @@ const Dashboard = () => {
   const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
   const capitalizedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
 
+  // Funções para navegação
+  const navigateTo = (path: string) => {
+    navigate(path);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -42,13 +42,51 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-gray-500">Visão geral das suas finanças em {capitalizedMonth}</p>
         </div>
-        <Button onClick={handleAddTransaction}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Transação
-        </Button>
       </div>
 
+      {/* Cards de Saúde Financeira */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ 4.200,00</div>
+            <p className="text-xs text-muted-foreground">
+              +20% em relação ao mês passado
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/controle-mensal')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Economia Mensal</CardTitle>
+            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ 1.200,00</div>
+            <p className="text-xs text-muted-foreground">
+              +12% em relação ao mês passado
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/investimentos')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Indicador de Investimentos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">28%</div>
+            <p className="text-xs text-muted-foreground">
+              Percentual da renda investida
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Cards principais do Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="animated-card">
+        <Card className="animated-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
             <Wallet className="h-4 w-4 text-gray-500" />
@@ -63,7 +101,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="animated-card">
+        <Card className="animated-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Entradas</CardTitle>
             <ArrowUp className="h-4 w-4 text-green-500" />
@@ -78,7 +116,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="animated-card">
+        <Card className="animated-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Saídas</CardTitle>
             <ArrowDown className="h-4 w-4 text-red-500" />
@@ -93,7 +131,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="animated-card cursor-pointer" onClick={() => navigate("/investimentos")}>
+        <Card className="animated-card cursor-pointer" onClick={() => navigateTo('/investimentos')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Investimentos</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-500" />

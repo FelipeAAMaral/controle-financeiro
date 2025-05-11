@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -16,7 +16,6 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import NotFound from "./pages/NotFound";
 
 // Placeholder para páginas futuras
-import SaudeFin from "./pages/SaudeFin";
 import ControleMensal from "./pages/ControleMensal";
 import Indicadores from "./pages/Indicadores";
 import GastosRecorrentes from "./pages/GastosRecorrentes";
@@ -48,11 +47,12 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              {/* Redirect saude-financeira to home */}
               <Route 
                 path="/saude-financeira" 
                 element={
                   <ProtectedRoute>
-                    <SaudeFin />
+                    <Navigate to="/" replace />
                   </ProtectedRoute>
                 } 
               />
