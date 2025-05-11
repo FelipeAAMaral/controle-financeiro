@@ -49,6 +49,7 @@ interface GastoRecorrenteFormProps {
   onSubmit: (data: GastoRecorrenteFormValues) => void;
   initialData?: GastoRecorrenteFormValues;
   isEdit?: boolean;
+  isSubmitting?: boolean;
 }
 
 export default function GastoRecorrenteForm({
@@ -56,6 +57,7 @@ export default function GastoRecorrenteForm({
   onSubmit,
   initialData,
   isEdit = false,
+  isSubmitting = false,
 }: GastoRecorrenteFormProps) {
   const form = useForm<GastoRecorrenteFormValues>({
     resolver: zodResolver(gastoRecorrenteSchema),
@@ -233,11 +235,11 @@ export default function GastoRecorrenteForm({
         )}
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button type="submit">
-            {isEdit ? "Atualizar" : "Salvar"}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Salvando..." : isEdit ? "Atualizar" : "Salvar"}
           </Button>
         </div>
       </form>

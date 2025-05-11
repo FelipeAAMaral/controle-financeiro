@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -52,6 +52,7 @@ interface TransacaoFormProps {
   onSubmit: (data: TransacaoFormValues) => void;
   initialData?: TransacaoFormValues;
   isEdit?: boolean;
+  isSubmitting?: boolean;
 }
 
 export default function TransacaoForm({
@@ -59,6 +60,7 @@ export default function TransacaoForm({
   onSubmit,
   initialData,
   isEdit = false,
+  isSubmitting = false,
 }: TransacaoFormProps) {
   const form = useForm<TransacaoFormValues>({
     resolver: zodResolver(transacaoSchema),
@@ -77,12 +79,6 @@ export default function TransacaoForm({
 
   const handleFormSubmit = (values: TransacaoFormValues) => {
     onSubmit(values);
-    toast.success(
-      isEdit
-        ? "Transação atualizada com sucesso!"
-        : "Transação cadastrada com sucesso!"
-    );
-    onClose();
   };
 
   return (
@@ -251,11 +247,11 @@ export default function TransacaoForm({
         />
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button type="submit">
-            {isEdit ? "Atualizar" : "Salvar"}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Salvando..." : isEdit ? "Atualizar" : "Salvar"}
           </Button>
         </div>
       </form>

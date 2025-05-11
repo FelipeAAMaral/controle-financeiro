@@ -21,3 +21,14 @@ export interface Transacao {
   account: string;
   benefitType?: string;
 }
+
+// Tipo para objetivos financeiros
+export interface Objetivo {
+  id: string;
+  title: string;
+  currentAmount: number;
+  targetAmount: number;
+  deadline: string;
+  icon: string;
+  color: string;
+}

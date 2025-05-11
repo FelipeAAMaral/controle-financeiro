@@ -13,14 +13,14 @@ const expenseData = [
   { name: "Outros", value: 150, color: "#00C49F" },
 ];
 
-// Dados de exemplo para fluxo de caixa mensal
+// Dados de exemplo para fluxo de caixa mensal (separados em dinheiro e benefícios)
 const cashFlowData = [
-  { month: "Jan", entrada: 4500, saida: 3800 },
-  { month: "Fev", entrada: 4500, saida: 3900 },
-  { month: "Mar", entrada: 4800, saida: 4100 },
-  { month: "Abr", entrada: 4700, saida: 3950 },
-  { month: "Mai", entrada: 4600, saida: 3800 },
-  { month: "Jun", entrada: 5200, saida: 4000 },
+  { month: "Jan", entradaDinheiro: 4500, saidaDinheiro: 3400, entradaBeneficio: 0, saidaBeneficio: 400 },
+  { month: "Fev", entradaDinheiro: 4500, saidaDinheiro: 3500, entradaBeneficio: 0, saidaBeneficio: 400 },
+  { month: "Mar", entradaDinheiro: 4800, saidaDinheiro: 3700, entradaBeneficio: 0, saidaBeneficio: 400 },
+  { month: "Abr", entradaDinheiro: 4700, saidaDinheiro: 3550, entradaBeneficio: 0, saidaBeneficio: 400 },
+  { month: "Mai", entradaDinheiro: 4600, saidaDinheiro: 3400, entradaBeneficio: 0, saidaBeneficio: 400 },
+  { month: "Jun", entradaDinheiro: 5200, saidaDinheiro: 3600, entradaBeneficio: 0, saidaBeneficio: 400 },
 ];
 
 // Dados de exemplo para evolução do patrimônio
@@ -108,8 +108,10 @@ const FinancialOverview = () => {
                     )} 
                   />
                   <Legend />
-                  <Bar dataKey="entrada" name="Entrada" fill="#4ade80" />
-                  <Bar dataKey="saida" name="Saída" fill="#f87171" />
+                  <Bar dataKey="entradaDinheiro" name="Entrada (Dinheiro)" fill="#4ade80" />
+                  <Bar dataKey="entradaBeneficio" name="Entrada (Benefício)" fill="#a7f3d0" />
+                  <Bar dataKey="saidaDinheiro" name="Saída (Dinheiro)" fill="#f87171" />
+                  <Bar dataKey="saidaBeneficio" name="Saída (Benefício)" fill="#fecaca" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
