@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -221,7 +220,7 @@ const ViagemForm = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="nenhum">Nenhum</SelectItem>
                     {mockObjetivos.map((objetivo) => (
                       <SelectItem key={objetivo.id} value={objetivo.id}>
                         {objetivo.title} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(objetivo.targetAmount)}
