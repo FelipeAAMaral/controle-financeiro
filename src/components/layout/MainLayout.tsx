@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import MobileHeader from "./MobileHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -46,7 +47,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         onToggle={toggleSidebar}
       />
       
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        sidebarOpen && !isMobile ? 'ml-64' : (isMobile ? 'ml-0' : 'ml-16')
+      )}>
         {isMobile && (
           <MobileHeader 
             onMenuClick={toggleSidebar} 
