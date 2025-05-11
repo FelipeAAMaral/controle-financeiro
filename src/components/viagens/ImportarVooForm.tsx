@@ -13,6 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ImportarVooFormProps {
   open: boolean;
@@ -24,6 +31,7 @@ interface ImportarVooFormProps {
 export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemId }: ImportarVooFormProps) {
   const [codigoReserva, setCodigoReserva] = useState("");
   const [sobrenome, setSobrenome] = useState("");
+  const [companhiaAerea, setCompanhiaAerea] = useState(""); // New state for airline selection
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +63,7 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
           data: "2023-12-01",
           horarioPartida: "22:30",
           horarioChegada: "14:45",
-          companhia: "Air France",
+          companhia: companhiaAerea || "Air France", // Use selected airline or default
           numeroVoo: "AF457",
           terminal: "3",
           portao: "22",
@@ -84,7 +92,8 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
         codigoReserva,
         sobrenome,
         lastChecked: new Date().toISOString(),
-        viagemId
+        viagemId,
+        companhiaAerea
       }));
       
     } catch (error) {
@@ -131,6 +140,27 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
               placeholder="Ex: SILVA"
               className="uppercase"
             />
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="companhiaAerea">Companhia Aérea</Label>
+            <Select value={companhiaAerea} onValueChange={setCompanhiaAerea}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a companhia aérea" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LATAM">LATAM Airlines</SelectItem>
+                <SelectItem value="GOL">GOL Linhas Aéreas</SelectItem>
+                <SelectItem value="Azul">Azul Linhas Aéreas</SelectItem>
+                <SelectItem value="Air France">Air France</SelectItem>
+                <SelectItem value="TAP">TAP Air Portugal</SelectItem>
+                <SelectItem value="American Airlines">American Airlines</SelectItem>
+                <SelectItem value="British Airways">British Airways</SelectItem>
+                <SelectItem value="Emirates">Emirates</SelectItem>
+                <SelectItem value="Lufthansa">Lufthansa</SelectItem>
+                <SelectItem value="KLM">KLM</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <DialogFooter className="mt-4">
