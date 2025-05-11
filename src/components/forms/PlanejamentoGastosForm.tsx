@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -142,12 +141,22 @@ const PlanejamentoGastosForm = ({
   
   const handleSubmit = (values: PlanejamentoGastoFormValues) => {
     if (valorConvertido) {
-      const data = {
-        ...values,
-        valorConvertido,
+      // Fix: Ensure all required properties are provided and not optional
+      const data: PlanejamentoGastoViagem = {
         id: "", // será preenchido pelo backend
         viagemId: "", // será preenchido pelo componente pai
+        categoria: values.categoria, // required field, ensure it's provided
+        descricao: values.descricao, // required field
+        valor: values.valor, // required field
+        moedaOrigem: values.moedaOrigem, // required field
+        moedaDestino: values.moedaDestino, // required field
+        valorConvertido: valorConvertido, // required field
+        taxaConversao: values.taxaConversao || 1, // provide default if undefined
+        taxaIOF: values.taxaIOF,
+        taxaBancaria: values.taxaBancaria,
+        data: values.data ? values.data.toISOString().split('T')[0] : undefined // Convert Date to string format
       };
+      
       onSubmit(data);
       form.reset();
     }
@@ -324,8 +333,8 @@ const PlanejamentoGastosForm = ({
                   Taxa de câmbio atual: 1 {moedaOrigem} = {
                     moedaDestino === "BRL" ? 
                       mockCotacoes.find(c => c.codigo === moedaOrigem)?.valor : 
-                      (mockCotacoes.find(c => c.codigo === moedaDestino)?.valor || 0) / 
-                      (mockCotacoes.find(c => c.codigo === moedaOrigem)?.valor || 1)
+                      (mockCotacoes.find(c => c.codigo === moedaDestino)?.valor || 0) 
+                      / (mockCotacoes.find(c => c.codigo === moedaOrigem)?.valor || 1)
                   } {moedaDestino}
                 </p>
               </div>
