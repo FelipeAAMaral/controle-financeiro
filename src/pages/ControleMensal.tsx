@@ -13,7 +13,18 @@ const months = [
 
 const years = [2023, 2024, 2025];
 
-const recurringExpenses = [
+// Define a type for transactions
+type Transaction = {
+  id: number;
+  description: string;
+  amount: number;
+  day: number;
+  category: string;
+  type: "entrada" | "debito" | "beneficio";
+  benefitType?: string; // Make benefitType optional
+};
+
+const recurringExpenses: Transaction[] = [
   { id: 1, description: "Aluguel", amount: 1200, day: 10, category: "Moradia", type: "debito" },
   { id: 2, description: "Condomínio", amount: 350, day: 10, category: "Moradia", type: "debito" },
   { id: 3, description: "Netflix", amount: 39.90, day: 15, category: "Entretenimento", type: "debito" },
@@ -21,7 +32,7 @@ const recurringExpenses = [
   { id: 5, description: "Spotify", amount: 19.90, day: 15, category: "Entretenimento", type: "debito" },
 ];
 
-const monthlyTransactions = [
+const monthlyTransactions: Transaction[] = [
   { id: 101, description: "Supermercado", amount: 420.50, day: 5, category: "Alimentação", type: "beneficio", benefitType: "alimentacao" },
   { id: 102, description: "Restaurante", amount: 85.30, day: 8, category: "Alimentação", type: "beneficio", benefitType: "refeicao" },
   { id: 103, description: "Uber", amount: 45.75, day: 10, category: "Transporte", type: "debito" },
