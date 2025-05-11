@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { GastoRecorrente } from "@/types";
+import GastoRecorrenteForm from "@/components/forms/GastoRecorrenteForm";
+import { toast } from "sonner";
 
 // Dados de exemplo para gastos recorrentes
-const recurringExpenses = [
+const initialExpenses: GastoRecorrente[] = [
   { 
     id: 1, 
     description: "Aluguel", 
@@ -87,149 +87,13 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Lista das categorias para o formulário
-const categories = [
-  "Moradia", "Alimentação", "Transporte", "Saúde", "Educação", 
-  "Lazer", "Entretenimento", "Renda", "Benefícios"
-];
-
-// Form para adicionar/editar gastos recorrentes
-const GastoRecorrenteForm = ({ onClose }: { onClose: () => void }) => {
-  const [formData, setFormData] = useState({
-    description: "",
-    amount: "",
-    day: "",
-    category: "",
-    type: "debito",
-    benefitType: "",
-  });
-
-  const handleChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    onClose();
-  };
-
-  const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1);
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
-        <Input
-          id="description"
-          value={formData.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="amount">Valor</Label>
-        <Input
-          id="amount"
-          type="number"
-          step="0.01"
-          min="0"
-          value={formData.amount}
-          onChange={(e) => handleChange("amount", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="day">Dia do mês</Label>
-        <Select
-          value={formData.day}
-          onValueChange={(value) => handleChange("day", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o dia" />
-          </SelectTrigger>
-          <SelectContent>
-            {dayOptions.map((day) => (
-              <SelectItem key={day} value={day.toString()}>
-                {day}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="category">Categoria</Label>
-        <Select
-          value={formData.category}
-          onValueChange={(value) => handleChange("category", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="type">Tipo</Label>
-        <Select
-          value={formData.type}
-          onValueChange={(value) => handleChange("type", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="entrada">Entrada</SelectItem>
-            <SelectItem value="debito">Débito</SelectItem>
-            <SelectItem value="beneficio">Benefício</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {formData.type === "beneficio" && (
-        <div className="space-y-2">
-          <Label htmlFor="benefitType">Tipo de Benefício</Label>
-          <Select
-            value={formData.benefitType}
-            onValueChange={(value) => handleChange("benefitType", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o tipo de benefício" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="alimentacao">Alimentação</SelectItem>
-              <SelectItem value="refeicao">Refeição</SelectItem>
-              <SelectItem value="mobilidade">Mobilidade</SelectItem>
-              <SelectItem value="saude">Saúde</SelectItem>
-              <SelectItem value="cultura">Cultura</SelectItem>
-              <SelectItem value="home-office">Home Office</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit">Salvar</Button>
-      </div>
-    </form>
-  );
-};
-
 const GastosRecorrentes = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [recurringExpenses, setRecurringExpenses] = useState<GastoRecorrente[]>(initialExpenses);
+  const [currentExpense, setCurrentExpense] = useState<GastoRecorrente | undefined>(undefined);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
 
   // Separar os gastos por tipo
   const entradas = recurringExpenses.filter(expense => expense.type === "entrada");
@@ -241,6 +105,65 @@ const GastosRecorrentes = () => {
   const totalSaidas = saidas.reduce((sum, expense) => sum + expense.amount, 0);
   const totalBeneficios = beneficios.reduce((sum, expense) => sum + expense.amount, 0);
   const saldoLiquido = totalEntradas - totalSaidas;
+
+  const handleCreateExpense = (data: any) => {
+    const newExpense: GastoRecorrente = {
+      id: recurringExpenses.length + 1,
+      description: data.description,
+      amount: Number(data.amount),
+      day: Number(data.day),
+      category: data.category,
+      type: data.type,
+      ...(data.benefitType && { benefitType: data.benefitType }),
+    };
+    
+    setRecurringExpenses([...recurringExpenses, newExpense]);
+  };
+
+  const handleEditExpense = (data: any) => {
+    if (!currentExpense) return;
+    
+    const updatedExpenses = recurringExpenses.map(expense => 
+      expense.id === currentExpense.id 
+        ? {
+            ...expense,
+            description: data.description,
+            amount: Number(data.amount),
+            day: Number(data.day),
+            category: data.category,
+            type: data.type,
+            ...(data.benefitType ? { benefitType: data.benefitType } : { benefitType: undefined }),
+          } 
+        : expense
+    );
+    
+    setRecurringExpenses(updatedExpenses);
+    setCurrentExpense(undefined);
+  };
+
+  const openEditDialog = (expense: GastoRecorrente) => {
+    setCurrentExpense(expense);
+    setIsEditDialogOpen(true);
+  };
+
+  const confirmDelete = (id: number) => {
+    setExpenseToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (expenseToDelete === null) return;
+    
+    const updatedExpenses = recurringExpenses.filter(
+      expense => expense.id !== expenseToDelete
+    );
+    
+    setRecurringExpenses(updatedExpenses);
+    setDeleteDialogOpen(false);
+    setExpenseToDelete(null);
+    
+    toast.success("Gasto recorrente excluído com sucesso!");
+  };
 
   return (
     <div className="space-y-6">
@@ -257,7 +180,10 @@ const GastosRecorrentes = () => {
             <DialogHeader>
               <DialogTitle>Cadastrar Gasto Recorrente</DialogTitle>
             </DialogHeader>
-            <GastoRecorrenteForm onClose={() => setIsDialogOpen(false)} />
+            <GastoRecorrenteForm 
+              onClose={() => setIsDialogOpen(false)}
+              onSubmit={handleCreateExpense}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -326,7 +252,7 @@ const GastosRecorrentes = () => {
               {recurringExpenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell className={`font-medium ${expense.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableCell className={`font-medium ${expense.type === 'entrada' ? 'text-green-600' : expense.type === 'debito' ? 'text-red-600' : 'text-blue-600'}`}>
                     {formatCurrency(expense.amount)}
                   </TableCell>
                   <TableCell>Dia {expense.day}</TableCell>
@@ -343,17 +269,27 @@ const GastosRecorrentes = () => {
                       </Badge>
                     )}
                     {expense.type === "beneficio" && expense.benefitType && (
-                      <span className={`benefit-${expense.benefitType}`}>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                         {expense.benefitType.charAt(0).toUpperCase() + expense.benefitType.slice(1)}
-                      </span>
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(expense)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-red-500"
+                        onClick={() => confirmDelete(expense.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -364,6 +300,51 @@ const GastosRecorrentes = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Diálogo de edição */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Gasto Recorrente</DialogTitle>
+          </DialogHeader>
+          {currentExpense && (
+            <GastoRecorrenteForm
+              onClose={() => setIsEditDialogOpen(false)}
+              onSubmit={handleEditExpense}
+              initialData={{
+                id: currentExpense.id,
+                description: currentExpense.description,
+                amount: currentExpense.amount.toString(),
+                day: currentExpense.day.toString(),
+                category: currentExpense.category,
+                type: currentExpense.type,
+                benefitType: currentExpense.benefitType || "",
+              }}
+              isEdit
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmação de exclusão */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+          </DialogHeader>
+          <div className="py-3">
+            <p>Tem certeza que deseja excluir este gasto recorrente?</p>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

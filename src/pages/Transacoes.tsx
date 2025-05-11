@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Filter, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Transacao } from "@/types";
+import TransacaoForm from "@/components/forms/TransacaoForm";
+import { toast } from "sonner";
 
 // Dados de exemplo
-const transactions = [
+const initialTransactions: Transacao[] = [
   {
     id: "1",
     description: "Salário",
@@ -91,160 +91,13 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Lista das categorias e contas para o formulário
-const categories = [
-  "Alimentação", "Transporte", "Moradia", "Saúde", "Educação", 
-  "Lazer", "Entretenimento", "Salário", "Freelance", "Investimentos"
-];
-
-const accounts = ["Nubank", "Itaú", "Bradesco", "Caixa", "Santander", "Caju"];
-
-// Form para adicionar/editar transações
-const TransacaoForm = ({ onClose }: { onClose: () => void }) => {
-  const [formData, setFormData] = useState({
-    description: "",
-    amount: "",
-    date: new Date().toISOString().split('T')[0],
-    type: "saida",
-    category: "",
-    account: "",
-    benefitType: "",
-  });
-
-  const handleChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    onClose();
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
-        <Input
-          id="description"
-          value={formData.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="amount">Valor</Label>
-        <Input
-          id="amount"
-          type="number"
-          step="0.01"
-          value={formData.amount}
-          onChange={(e) => handleChange("amount", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="date">Data</Label>
-        <Input
-          id="date"
-          type="date"
-          value={formData.date}
-          onChange={(e) => handleChange("date", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="type">Tipo</Label>
-        <Select
-          value={formData.type}
-          onValueChange={(value) => handleChange("type", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="entrada">Entrada</SelectItem>
-            <SelectItem value="saida">Saída</SelectItem>
-            <SelectItem value="beneficio">Benefício</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {formData.type === "beneficio" && (
-        <div className="space-y-2">
-          <Label htmlFor="benefitType">Tipo de Benefício</Label>
-          <Select
-            value={formData.benefitType}
-            onValueChange={(value) => handleChange("benefitType", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o tipo de benefício" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="alimentacao">Alimentação</SelectItem>
-              <SelectItem value="refeicao">Refeição</SelectItem>
-              <SelectItem value="mobilidade">Mobilidade</SelectItem>
-              <SelectItem value="saude">Saúde</SelectItem>
-              <SelectItem value="cultura">Cultura</SelectItem>
-              <SelectItem value="home-office">Home Office</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="category">Categoria</Label>
-        <Select
-          value={formData.category}
-          onValueChange={(value) => handleChange("category", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="account">Conta</Label>
-        <Select
-          value={formData.account}
-          onValueChange={(value) => handleChange("account", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a conta" />
-          </SelectTrigger>
-          <SelectContent>
-            {accounts.map((account) => (
-              <SelectItem key={account} value={account}>
-                {account}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit">Salvar</Button>
-      </div>
-    </form>
-  );
-};
-
 const Transacoes = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [transactions, setTransactions] = useState<Transacao[]>(initialTransactions);
+  const [currentTransaction, setCurrentTransaction] = useState<Transacao | undefined>(undefined);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
 
   // Calcular totais
   const totalEntradas = transactions
@@ -258,6 +111,86 @@ const Transacoes = () => {
   const totalBeneficios = transactions
     .filter(t => t.type === "beneficio")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  const handleCreateTransaction = (data: any) => {
+    // Gerar um ID único (em produção, isso seria feito pelo backend)
+    const newId = (Math.max(...transactions.map(t => parseInt(t.id))) + 1).toString();
+    
+    // Ajustar o valor para negativo se for uma saída ou benefício
+    let amount = Number(data.amount);
+    if (data.type === 'saida' || data.type === 'beneficio') {
+      amount = amount > 0 ? -amount : amount;
+    } else {
+      amount = Math.abs(amount);
+    }
+    
+    const newTransaction: Transacao = {
+      id: newId,
+      description: data.description,
+      date: data.date,
+      amount: amount,
+      type: data.type,
+      category: data.category,
+      account: data.account,
+      ...(data.benefitType && { benefitType: data.benefitType }),
+    };
+    
+    setTransactions([newTransaction, ...transactions]);
+  };
+
+  const handleEditTransaction = (data: any) => {
+    if (!currentTransaction) return;
+    
+    // Ajustar o valor para negativo se for uma saída ou benefício
+    let amount = Number(data.amount);
+    if (data.type === 'saida' || data.type === 'beneficio') {
+      amount = amount > 0 ? -amount : amount;
+    } else {
+      amount = Math.abs(amount);
+    }
+    
+    const updatedTransactions = transactions.map(transaction => 
+      transaction.id === currentTransaction.id 
+        ? {
+            ...transaction,
+            description: data.description,
+            date: data.date,
+            amount: amount,
+            type: data.type,
+            category: data.category,
+            account: data.account,
+            ...(data.benefitType ? { benefitType: data.benefitType } : { benefitType: undefined }),
+          } 
+        : transaction
+    );
+    
+    setTransactions(updatedTransactions);
+    setCurrentTransaction(undefined);
+  };
+
+  const openEditDialog = (transaction: Transacao) => {
+    setCurrentTransaction(transaction);
+    setIsEditDialogOpen(true);
+  };
+
+  const confirmDelete = (id: string) => {
+    setTransactionToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (transactionToDelete === null) return;
+    
+    const updatedTransactions = transactions.filter(
+      transaction => transaction.id !== transactionToDelete
+    );
+    
+    setTransactions(updatedTransactions);
+    setDeleteDialogOpen(false);
+    setTransactionToDelete(null);
+    
+    toast.success("Transação excluída com sucesso!");
+  };
 
   return (
     <div className="space-y-6">
@@ -279,7 +212,10 @@ const Transacoes = () => {
               <DialogHeader>
                 <DialogTitle>Cadastrar Transação</DialogTitle>
               </DialogHeader>
-              <TransacaoForm onClose={() => setIsDialogOpen(false)} />
+              <TransacaoForm 
+                onClose={() => setIsDialogOpen(false)}
+                onSubmit={handleCreateTransaction}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -337,9 +273,9 @@ const Transacoes = () => {
                   <TableCell className="font-medium">{transaction.description}</TableCell>
                   <TableCell>
                     {transaction.benefitType ? (
-                      <span className={`benefit-${transaction.benefitType}`}>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                         {transaction.category}
-                      </span>
+                      </Badge>
                     ) : (
                       <Badge variant="outline" className={
                         transaction.type === "entrada"
@@ -362,10 +298,20 @@ const Transacoes = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(transaction)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-red-500"
+                        onClick={() => confirmDelete(transaction.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -376,6 +322,52 @@ const Transacoes = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Diálogo de edição */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Transação</DialogTitle>
+          </DialogHeader>
+          {currentTransaction && (
+            <TransacaoForm
+              onClose={() => setIsEditDialogOpen(false)}
+              onSubmit={handleEditTransaction}
+              initialData={{
+                id: currentTransaction.id,
+                description: currentTransaction.description,
+                amount: Math.abs(currentTransaction.amount).toString(),
+                date: currentTransaction.date,
+                type: currentTransaction.type,
+                category: currentTransaction.category,
+                account: currentTransaction.account,
+                benefitType: currentTransaction.benefitType || "",
+              }}
+              isEdit
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmação de exclusão */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+          </DialogHeader>
+          <div className="py-3">
+            <p>Tem certeza que deseja excluir esta transação?</p>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
