@@ -1,50 +1,59 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, PiggyBank } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import ObjetivoForm from "@/components/forms/ObjetivoForm";
+import { toast } from "sonner";
+import { objetivoService } from "@/services/objetivoService";
+import { useUserData } from "@/hooks/useUserData";
+import { Objetivo } from "@/types";
 
-// Dados de exemplo
-const goals = [
+// Dados de exemplo - agora associados ao usuário
+const mockGoals = [
   {
-    id: 1,
+    id: "1",
     title: "Fundo de emergência",
     currentAmount: 5000,
     targetAmount: 15000,
     deadline: "2023-12-31",
     icon: "🛡️",
     color: "bg-blue-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
   },
   {
-    id: 2,
+    id: "2",
     title: "Viagem para Europa",
     currentAmount: 3200,
     targetAmount: 12000,
     deadline: "2024-07-31",
     icon: "✈️",
     color: "bg-purple-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
   },
   {
-    id: 3,
+    id: "3",
     title: "Novo notebook",
     currentAmount: 2800,
     targetAmount: 4000,
     deadline: "2023-09-30",
     icon: "💻",
     color: "bg-green-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
   },
   {
-    id: 4,
+    id: "4",
     title: "Entrada apartamento",
     currentAmount: 15000,
     targetAmount: 80000,
     deadline: "2026-01-31",
     icon: "🏠",
     color: "bg-orange-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
   },
 ];
 
@@ -60,148 +69,82 @@ const formatDate = (dateString: string) => {
   return new Intl.DateTimeFormat("pt-BR").format(date);
 };
 
-const iconOptions = [
-  { value: "🛡️", label: "Escudo (Fundo de Emergência)" },
-  { value: "✈️", label: "Avião (Viagem)" },
-  { value: "💻", label: "Notebook (Tecnologia)" },
-  { value: "🏠", label: "Casa (Imóvel)" },
-  { value: "🚗", label: "Carro (Veículo)" },
-  { value: "📚", label: "Livros (Educação)" },
-  { value: "💍", label: "Anel (Casamento)" },
-  { value: "👶", label: "Bebê (Família)" },
-  { value: "🏥", label: "Hospital (Saúde)" },
-];
-
-const colorOptions = [
-  { value: "bg-blue-500", label: "Azul" },
-  { value: "bg-purple-500", label: "Roxo" },
-  { value: "bg-green-500", label: "Verde" },
-  { value: "bg-orange-500", label: "Laranja" },
-  { value: "bg-red-500", label: "Vermelho" },
-  { value: "bg-pink-500", label: "Rosa" },
-  { value: "bg-yellow-500", label: "Amarelo" },
-  { value: "bg-cyan-500", label: "Ciano" },
-];
-
 // Form para adicionar/editar objetivos
-const ObjetivoForm = ({ onClose }: { onClose: () => void }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    currentAmount: "",
-    targetAmount: "",
-    deadline: "",
-    icon: "🛡️",
-    color: "bg-blue-500",
-  });
-
-  const handleChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    onClose();
+const ObjetivoFormDialog = ({ 
+  onClose, 
+  initialData,
+  isEdit = false 
+}: { 
+  onClose: () => void,
+  initialData?: Objetivo,
+  isEdit?: boolean
+}) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleSubmit = async (data: any) => {
+    if (!user) return;
+    
+    setIsSubmitting(true);
+    try {
+      // Aqui você implementaria a lógica real para salvar no banco de dados
+      // Por enquanto, simulamos uma chamada de API bem-sucedida
+      toast.success(isEdit ? "Objetivo atualizado com sucesso!" : "Objetivo criado com sucesso!");
+      
+      // Se estiver editando, você pode navegar para a página de detalhes ou atualizar a listagem
+      if (isEdit) {
+        // Simular uma atualização
+        console.log("Atualizando objetivo:", data);
+      } else {
+        // Simular uma criação
+        console.log("Criando novo objetivo:", data);
+      }
+    } catch (error) {
+      console.error("Erro ao salvar objetivo:", error);
+      toast.error("Ocorreu um erro ao salvar o objetivo");
+    } finally {
+      setIsSubmitting(false);
+      onClose();
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">Título</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => handleChange("title", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="currentAmount">Valor Atual</Label>
-        <Input
-          id="currentAmount"
-          type="number"
-          step="0.01"
-          min="0"
-          value={formData.currentAmount}
-          onChange={(e) => handleChange("currentAmount", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="targetAmount">Valor Alvo</Label>
-        <Input
-          id="targetAmount"
-          type="number"
-          step="0.01"
-          min="0"
-          value={formData.targetAmount}
-          onChange={(e) => handleChange("targetAmount", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="deadline">Prazo</Label>
-        <Input
-          id="deadline"
-          type="date"
-          value={formData.deadline}
-          onChange={(e) => handleChange("deadline", e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="icon">Ícone</Label>
-        <select
-          id="icon"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
-          value={formData.icon}
-          onChange={(e) => handleChange("icon", e.target.value)}
-        >
-          {iconOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.value} {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="color">Cor</Label>
-        <select
-          id="color"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
-          value={formData.color}
-          onChange={(e) => handleChange("color", e.target.value)}
-        >
-          {colorOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit">Salvar</Button>
-      </div>
-    </form>
+    <ObjetivoForm 
+      onClose={onClose} 
+      onSubmit={handleSubmit}
+      initialData={initialData}
+      isSubmitting={isSubmitting}
+      isEdit={isEdit}
+    />
   );
 };
 
 const Objetivos = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [goals, setGoals] = useState(mockGoals);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Calcular totais
   const totalSaved = goals.reduce((sum, goal) => sum + goal.currentAmount, 0);
   const totalTarget = goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
   const averageProgress = Math.round((totalSaved / totalTarget) * 100);
+
+  const handleEditClick = (goalId: string | number) => {
+    // Navegar para a página de edição de objetivo
+    navigate(`/objetivos/editar/${goalId}`);
+  };
+
+  const handleDeleteClick = (goalId: string | number) => {
+    // Implementar lógica de exclusão
+    if (confirm("Tem certeza que deseja excluir este objetivo?")) {
+      // Removendo o objetivo do array local (simulação)
+      const filteredGoals = goals.filter(goal => goal.id !== goalId);
+      setGoals(filteredGoals);
+      toast.success("Objetivo excluído com sucesso!");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -221,7 +164,7 @@ const Objetivos = () => {
             <DialogHeader>
               <DialogTitle>Cadastrar Objetivo</DialogTitle>
             </DialogHeader>
-            <ObjetivoForm onClose={() => setIsDialogOpen(false)} />
+            <ObjetivoFormDialog onClose={() => setIsDialogOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
@@ -267,10 +210,20 @@ const Objetivos = () => {
                     <CardTitle className="text-base">{goal.title}</CardTitle>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEditClick(goal.id)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-red-500"
+                      onClick={() => handleDeleteClick(goal.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

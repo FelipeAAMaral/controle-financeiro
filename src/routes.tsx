@@ -15,6 +15,7 @@ import ControleMensal from "./pages/ControleMensal";
 import Indicadores from "./pages/Indicadores";
 import GastosRecorrentes from "./pages/GastosRecorrentes";
 import Objetivos from "./pages/Objetivos";
+import EditarObjetivo from "./pages/EditarObjetivo";
 import Transacoes from "./pages/Transacoes";
 import Viagens from "./pages/Viagens";
 import Configuracoes from "./pages/Configuracoes";
@@ -91,6 +92,15 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <MainLayout>
             <Objetivos />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Add route for editing objectives */}
+      <Route path="/objetivos/editar/:id" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <EditarObjetivo />
           </MainLayout>
         </ProtectedRoute>
       } />

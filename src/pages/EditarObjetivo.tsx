@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ObjetivoForm from "@/components/forms/ObjetivoForm";
+import { useAuth } from "@/hooks/useAuth";
 
-// Mock data for demonstration purposes
+// Mock data for demonstration purposes with user association
 const mockGoals = [
   {
     id: "1",
@@ -17,6 +18,7 @@ const mockGoals = [
     deadline: "2023-12-31",
     icon: "🛡️",
     color: "bg-blue-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
   },
   {
     id: "2",
@@ -26,6 +28,27 @@ const mockGoals = [
     deadline: "2024-07-31",
     icon: "✈️",
     color: "bg-purple-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  },
+  {
+    id: "3",
+    title: "Novo notebook",
+    currentAmount: "2800",
+    targetAmount: "4000",
+    deadline: "2023-09-30",
+    icon: "💻",
+    color: "bg-green-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  },
+  {
+    id: "4",
+    title: "Entrada apartamento",
+    currentAmount: "15000",
+    targetAmount: "80000",
+    deadline: "2026-01-31",
+    icon: "🏠",
+    color: "bg-orange-500",
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
   }
 ];
 
@@ -35,27 +58,32 @@ export default function EditarObjetivo() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [objetivo, setObjetivo] = useState<any>(null);
+  const { user } = useAuth();
   
   useEffect(() => {
     // In a real app, you would fetch the goal data from an API
     // For now, we'll simulate loading data
     setIsLoading(true);
     setTimeout(() => {
-      const foundGoal = mockGoals.find(g => g.id === id);
+      // Filter by both ID and user_id for security
+      const foundGoal = mockGoals.find(g => g.id === id && g.user_id === user?.id);
       
       if (foundGoal) {
+        console.log("Goal found:", foundGoal);
         setObjetivo(foundGoal);
       } else {
+        console.log("Goal not found for ID:", id, "and user:", user?.id);
         toast.error("Objetivo não encontrado");
         navigate("/objetivos");
       }
       
       setIsLoading(false);
     }, 300);
-  }, [id, navigate]);
+  }, [id, navigate, user?.id]);
   
   const handleSubmit = (data: any) => {
     setIsSubmitting(true);
+    console.log("Submitting updated goal data:", data);
     
     // Here you would typically send the data to your backend
     // Simulate an API call with setTimeout
