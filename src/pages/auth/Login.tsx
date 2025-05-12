@@ -49,9 +49,9 @@ const Login = () => {
           )}
           
           {googleError && (
-            <Alert variant="warning" className="mb-6">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
+            <Alert variant="default" className="mb-6 border-amber-500 bg-amber-50">
+              <Info className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-amber-800">
                 {googleError}
                 <div className="mt-2 text-xs">
                   Para habilitar o login com Google, acesse o painel do Supabase, navegue até Authentication {'>'} Providers e ative o Google.
