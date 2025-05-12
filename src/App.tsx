@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import AuthCallback from "./pages/auth/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 // Placeholder para páginas futuras
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               
               {/* Rotas protegidas */}
               <Route 
