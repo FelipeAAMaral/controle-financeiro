@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -12,7 +12,6 @@ export const useAuthProvider = () => {
   // Create the AuthProvider component that will wrap the app
   const AuthProvider = ({ children }: { children: ReactNode }) => {
     const navigate = useNavigate();
-    const location = useLocation();
     const [user, setUser] = useState<AuthUser | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
@@ -46,7 +45,6 @@ export const useAuthProvider = () => {
               ...prevUser,
               name: data.name || prevUser.name,
               photoURL: data.avatar_url || prevUser.photoURL,
-              // Add any other profile fields you want to include
             };
           });
         }
@@ -113,6 +111,7 @@ export const useAuthProvider = () => {
       // Set up auth state change listener
       const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
         console.log("Auth state changed:", event);
+        
         if (event === 'SIGNED_IN' && newSession) {
           setSession(newSession);
           const authUser = formatUser(newSession.user, newSession);
@@ -120,63 +119,58 @@ export const useAuthProvider = () => {
           
           // Fetch additional user data from database
           await fetchUserProfile(authUser.id);
+          
+          // Navigate to home if on login page
+          if (window.location.pathname === '/login') {
+            navigate('/');
+          }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
+          navigate('/login');
         }
       });
 
       return () => {
         data.subscription.unsubscribe();
       };
-    }, []);
+    }, [navigate]);
 
+    // Basic auth methods
     const login = async (email: string, password: string) => {
       try {
         setLoading(true);
         setError(null);
         
-        console.log("Attempting login with:", email);
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         
         if (error) {
-          console.error("Login error:", error);
           setError(error.message);
           toast.error(error.message || "Erro ao fazer login");
-          
-          // Propagate the error with code for component-level handling
           throw { message: error.message, code: error.code };
         }
 
         if (data.user) {
-          console.log("Login successful for:", data.user.email);
           const authUser = formatUser(data.user, data.session);
           setUser(authUser);
           setSession(data.session);
-          
-          // Fetch additional user data from database
           await fetchUserProfile(authUser.id);
-          
           toast.success("Login realizado com sucesso!");
           navigate("/");
         }
       } catch (error: any) {
-        if (!error.code) { // Only handle generic errors here, specific ones are thrown
+        if (!error.code) {
           const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
-          console.error("Login exception:", errorMessage);
           setError(errorMessage);
           toast.error(errorMessage);
         }
-        throw error; // Re-throw for component level handling
+        throw error;
       } finally {
         setLoading(false);
       }
     };
 
+    // Other auth methods - simplified but keeping functionality
     const loginWithGoogle = async () => {
       try {
         setLoading(true);
@@ -184,20 +178,13 @@ export const useAuthProvider = () => {
         
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/auth/callback`
-          }
+          options: { redirectTo: `${window.location.origin}/auth/callback` }
         });
         
         if (error) {
-          console.error("Google login error:", error);
           setError(error.message);
           toast.error(error.message || "Erro ao fazer login com Google");
-          return;
         }
-        
-        // No need to set user/session here as the redirect will happen
-        // and the auth state change listener will handle it
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login com Google";
         setError(errorMessage);
@@ -212,62 +199,41 @@ export const useAuthProvider = () => {
         setLoading(true);
         setError(null);
         
-        console.log("Attempting registration for:", email);
-        
-        // Get current origin for proper redirect
         const origin = window.location.origin;
         
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              name,
-            },
-            // Configure redirection with proper origin
+            data: { name },
             emailRedirectTo: `${origin}/auth/callback`,
           }
         });
         
         if (error) {
-          console.error("Registration error:", error);
           setError(error.message);
           toast.error(error.message || "Erro ao fazer cadastro");
           return;
         }
 
         if (data.user) {
-          console.log("Registration successful, user created:", data.user.email);
-          
-          // If email confirmation is required, redirect to login with a message
           if (!data.session) {
             toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
-            navigate("/login", { 
-              state: { 
-                emailConfirmationPending: true,
-                email: email
-              } 
-            });
+            navigate("/login", { state: { emailConfirmationPending: true, email } });
             return;
           }
           
-          // If the user has a session, they will be logged in automatically
           if (data.session) {
-            console.log("User session available, user signed in automatically");
             const authUser = formatUser(data.user, data.session);
             setUser(authUser);
             setSession(data.session);
-            
-            // Create user profile in database
             await createUserProfile(data.user.id);
-            
-            toast.success("Cadastro realizado com sucesso! Você foi conectado automaticamente.");
+            toast.success("Cadastro realizado com sucesso!");
             navigate("/");
           } 
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer cadastro";
-        console.error("Registration exception:", errorMessage);
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -334,6 +300,7 @@ export const useAuthProvider = () => {
           throw new Error("Usuário não está logado");
         }
         
+        // Update user metadata in auth
         const { error } = await supabase.auth.updateUser({
           data: {
             name: data.name,
@@ -345,6 +312,19 @@ export const useAuthProvider = () => {
           setError(error.message);
           toast.error(error.message || "Erro ao atualizar perfil");
           return;
+        }
+        
+        // Also update the profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            name: data.name,
+            avatar_url: data.photoURL
+          })
+          .eq('id', user.id);
+          
+        if (profileError) {
+          console.error("Error updating profile in database:", profileError);
         }
         
         // Update local user state

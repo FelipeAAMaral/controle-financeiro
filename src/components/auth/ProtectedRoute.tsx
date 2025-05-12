@@ -1,5 +1,6 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -8,8 +9,16 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, session } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // If not loading and no session/user, redirect to login
+    if (!loading && !session && !user) {
+      navigate("/login", { state: { from: location.pathname } });
+    }
+  }, [loading, session, user, navigate, location.pathname]);
 
   // Show a loading state while checking authentication
   if (loading) {
@@ -30,7 +39,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Redirect to login if user is not authenticated
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   // If authenticated, render the children

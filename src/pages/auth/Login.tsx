@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,7 +69,6 @@ const Login = () => {
 
   const handleResendVerification = async () => {
     try {
-      // Use Supabase directly to resend the verification email
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email
@@ -84,6 +84,9 @@ const Login = () => {
       toast.error("Erro ao reenviar o email de verificação");
     }
   };
+
+  // This prevents the blank screen on the login page
+  console.log("Rendering Login component", { user, session, loading });
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-blue-50 to-blue-100">
@@ -140,7 +143,7 @@ const Login = () => {
             </Alert>
           )}
           
-          {/* Google Login Button - More prominent placement */}
+          {/* Google Login Button */}
           <Button
             type="button"
             variant="outline"

@@ -7,7 +7,16 @@ import { BrowserRouter } from "react-router-dom";
 import { useAuthProvider } from "./hooks/useAuth";
 import AppRoutes from "./routes";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => {
   const { AuthProvider } = useAuthProvider();

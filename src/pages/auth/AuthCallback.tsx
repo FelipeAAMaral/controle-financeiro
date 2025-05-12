@@ -34,7 +34,7 @@ export default function AuthCallback() {
           
           if (sessionError) {
             console.error("Error setting session:", sessionError);
-            setError("Falha ao processar confirmação de email. Tente fazer login manualmente.");
+            setError("Falha ao processar confirmação de email");
             toast.error("Erro ao confirmar email. Por favor, tente fazer login.");
             setTimeout(() => navigate("/login"), 2000);
             return;
@@ -42,7 +42,6 @@ export default function AuthCallback() {
           
           if (data.session) {
             toast.success("Email confirmado com sucesso!");
-            // If we have user data, fetch their profile
             if (data.session.user) {
               try {
                 await fetchUserProfile(data.session.user.id);
@@ -60,7 +59,7 @@ export default function AuthCallback() {
         
         if (error) {
           console.error("Error during auth callback:", error);
-          setMessage("Falha na autenticação. Redirecionando para login...");
+          setError("Falha na autenticação");
           toast.error("Falha na autenticação. Por favor, tente novamente.");
           setTimeout(() => navigate("/login"), 1500);
           return;
@@ -70,8 +69,7 @@ export default function AuthCallback() {
           console.log("Auth callback successful, session obtained");
           setMessage("Login realizado com sucesso! Redirecionando...");
           
-          // If we have user data, fetch their profile
-          if (data.session.user && typeof fetchUserProfile === 'function') {
+          if (data.session.user) {
             try {
               await fetchUserProfile(data.session.user.id);
             } catch (err) {
@@ -88,6 +86,7 @@ export default function AuthCallback() {
         }
       } catch (err) {
         console.error("Unexpected error:", err);
+        setError("Ocorreu um erro inesperado");
         toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
         navigate("/login");
       }
