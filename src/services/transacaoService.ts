@@ -1,5 +1,6 @@
 
 import { SupabaseService } from './supabaseService';
+import { supabase } from '@/lib/supabase';
 
 export interface Transacao {
   id: string | number;
