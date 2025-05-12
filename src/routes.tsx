@@ -35,6 +35,9 @@ const LoadingFallback = () => (
 );
 
 const AppRoutes = () => {
+  // Add console log to check routes rendering
+  console.log("Rendering AppRoutes component");
+  
   return (
     <Routes>
       {/* Auth Routes - Public */}

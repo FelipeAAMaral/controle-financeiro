@@ -12,6 +12,8 @@ import FinancialGoals from "@/components/dashboard/FinancialGoals";
 import FinancialOverview from "@/components/dashboard/FinancialOverview";
 
 const Dashboard = () => {
+  console.log("Rendering Dashboard component"); // Debug log
+  
   const [selectedTab, setSelectedTab] = useState("overview");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -19,6 +21,8 @@ const Dashboard = () => {
   const [totalPatrimonio, setTotalPatrimonio] = useState(0);
 
   useEffect(() => {
+    console.log("Dashboard useEffect running"); // Debug log
+    
     // Simular o carregamento de dados de patrimônio
     const timer = setTimeout(() => {
       setTotalPatrimonio(22800);

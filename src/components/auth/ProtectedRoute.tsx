@@ -11,8 +11,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading, session } = useAuth();
   const location = useLocation();
 
+  // Add debug logs
+  console.log("ProtectedRoute - Auth state:", { user, loading, session, path: location.pathname });
+
   // Show a loading state while checking authentication
   if (loading) {
+    console.log("ProtectedRoute - Loading auth state");
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
         <div className="w-full max-w-md space-y-4">
@@ -30,12 +34,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Redirect to login if user is not authenticated
   if (!session || !user) {
-    console.log("Not authenticated, redirecting to login");
+    console.log("ProtectedRoute - Not authenticated, redirecting to login");
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   // If authenticated, render the children
-  console.log("User authenticated, rendering protected content");
+  console.log("ProtectedRoute - User authenticated, rendering protected content");
   return children;
 };
 
