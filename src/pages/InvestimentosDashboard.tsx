@@ -1,536 +1,423 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PieChart, AreaChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Plus, Wallet, PiggyBank, LineChart, DollarSign } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
+import { 
+  Area, 
+  AreaChart as RechartsAreaChart, 
+  CartesianGrid, 
+  ResponsiveContainer, 
+  Tooltip, 
+  XAxis, 
+  YAxis,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { investimentosService } from "@/services/investimentosService";
+import { toast } from "sonner";
+import { Investimento, MarketData } from "@/types/investimentos";
 
-// Definições de tipo para os investimentos
-interface InvestimentoBase {
-  id: string;
-  nome: string;
-  tipo: string;
-  categoria: string;
-  codigo: string;
-  valorInicial: number;
-  dataCompra: string;
-  corretora: string;
-  moeda: string;
-  banco?: string;
-  observacoes?: string;
+// Helper function para formatar valores monetários
+function formatCurrency(value: number, currency = "BRL") {
+  const formatter = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: currency,
+  });
+  return formatter.format(value);
 }
 
-interface InvestimentoRendaFixa extends InvestimentoBase {
-  rentabilidade: number;
-  vencimento: string;
-}
-
-interface InvestimentoRendaVariavel extends InvestimentoBase {
-  quantidade: number;
-  precoUnitario: number;
-}
-
-interface InvestimentoCripto extends InvestimentoBase {
-  quantidade: number;
-  precoUnitario: number;
-}
-
-type Investimento = InvestimentoRendaFixa | InvestimentoRendaVariavel | InvestimentoCripto;
-
-// Dados simulados de mercado
-interface MarketData {
-  index: string;
-  value: number;
-  change: number;
-  lastUpdate: string;
-}
-
-// Dados simulados para o painel de cotações
-const marketData: MarketData[] = [
-  { index: "Ibovespa", value: 129850.42, change: 0.72, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "S&P 500", value: 5237.34, change: -0.38, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "NASDAQ", value: 16745.12, change: -0.57, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "EURO STOXX 50", value: 4985.23, change: 0.31, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "Dólar", value: 5.18, change: 0.42, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "Euro", value: 5.62, change: 0.25, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "Bitcoin", value: 61254.87, change: 2.15, lastUpdate: "2024-05-12T12:30:00" },
-  { index: "Ethereum", value: 3058.76, change: 1.87, lastUpdate: "2024-05-12T12:30:00" },
-];
-
-// Mock data para representar investimentos em diferentes bancos
-const mockInvestimentos: Investimento[] = [
-  {
-    id: "1",
-    nome: "Tesouro IPCA+ 2026",
-    tipo: "tesouro",
-    categoria: "renda_fixa",
-    codigo: "IPCA+ 2026",
-    valorInicial: 5000,
-    dataCompra: "2023-01-15",
-    rentabilidade: 5.75,
-    vencimento: "2026-12-15",
-    corretora: "Banco do Brasil",
-    moeda: "BRL",
-    banco: "Banco do Brasil",
-    observacoes: "Investimento para segurança"
-  },
-  {
-    id: "2",
-    nome: "PETR4",
-    tipo: "acao",
-    categoria: "renda_variavel",
-    codigo: "PETR4",
-    valorInicial: 2000,
-    dataCompra: "2022-05-10",
-    quantidade: 200,
-    precoUnitario: 28.75,
-    corretora: "BTG Pactual",
-    moeda: "BRL",
-    banco: "BTG",
-  },
-  {
-    id: "3",
-    nome: "Bitcoin",
-    tipo: "cripto",
-    categoria: "cripto",
-    codigo: "BTC",
-    valorInicial: 10000,
-    dataCompra: "2021-09-22",
-    quantidade: 0.025,
-    precoUnitario: 40000,
-    corretora: "Binance",
-    moeda: "USD",
-    banco: "Nubank",
-  },
-  {
-    id: "4",
-    nome: "ETF S&P 500",
-    tipo: "internacional",
-    categoria: "internacional",
-    codigo: "VOO",
-    valorInicial: 5000,
-    dataCompra: "2022-01-10",
-    quantidade: 15,
-    precoUnitario: 380.54,
-    corretora: "Avenue",
-    moeda: "USD",
-    banco: "BTG",
-  },
-  {
-    id: "5",
-    nome: "CDB Nubank 120% CDI",
-    tipo: "cdb",
-    categoria: "renda_fixa",
-    codigo: "CDB Nubank",
-    valorInicial: 10000,
-    dataCompra: "2023-03-20",
-    rentabilidade: 120,
-    vencimento: "2025-03-20",
-    corretora: "Nubank",
-    moeda: "BRL",
-    banco: "Nubank",
-    observacoes: "Liquidez diária após 30 dias"
-  },
-  {
-    id: "6",
-    nome: "LCI BTG Pactual",
-    tipo: "lci",
-    categoria: "renda_fixa",
-    codigo: "LCI BTG",
-    valorInicial: 20000,
-    dataCompra: "2023-06-10",
-    rentabilidade: 95,
-    vencimento: "2026-06-10",
-    corretora: "BTG Pactual",
-    moeda: "BRL",
-    banco: "BTG",
-    observacoes: "Isento de IR"
-  }
-];
+// Cores para o gráfico de pizza
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const InvestimentosDashboard = () => {
-  const navigate = useNavigate();
-  const [investimentos, setInvestimentos] = useState<Investimento[]>(mockInvestimentos);
-  const [activeTab, setActiveTab] = useState("todos");
-  const [totalPatrimonio, setTotalPatrimonio] = useState(0);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [filter, setFilter] = useState("all");
+  const [investimentos, setInvestimentos] = useState<Investimento[]>([]);
+  const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [portfolioSummary, setPortfolioSummary] = useState({
-    rendaFixa: 0,
-    rendaVariavel: 0,
-    cripto: 0,
-    internacional: 0,
-    total: 0
-  });
-  const { toast } = useToast();
-  
-  // Simulação da integração com Open Finance para obter dados
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const fetchOpenFinanceData = async () => {
+    const fetchData = async () => {
+      if (!user) return;
+
       setIsLoading(true);
       try {
-        // Aqui seria a chamada para a API do Open Finance
-        // Simulando um atraso de carregamento
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Usando os dados mockados por enquanto
-        let total = 0;
-        let rendaFixa = 0;
-        let rendaVariavel = 0;
-        let cripto = 0;
-        let internacional = 0;
-        
-        // Simulação de cálculo de patrimônio total e por categoria
-        investimentos.forEach(investimento => {
-          let valorAtual = investimento.valorInicial;
-          
-          // Simulação simples de valorização
-          if (investimento.categoria === 'renda_variavel') {
-            valorAtual *= 1.15;
-            rendaVariavel += valorAtual;
-          } else if (investimento.categoria === 'renda_fixa') {
-            valorAtual *= 1.08;
-            rendaFixa += valorAtual;
-          } else if (investimento.categoria === 'cripto') {
-            valorAtual *= 1.3;
-            cripto += valorAtual;
-          } else if (investimento.categoria === 'internacional') {
-            valorAtual *= 1.2;
-            internacional += valorAtual;
-          }
-          
-          // Conversão para BRL se investimento em moeda estrangeira
-          if (investimento.moeda === 'USD') {
-            valorAtual *= 5.18; // Taxa de câmbio simulada USD -> BRL
-          } else if (investimento.moeda === 'EUR') {
-            valorAtual *= 5.62; // Taxa de câmbio simulada EUR -> BRL
-          }
-          
-          total += valorAtual;
-        });
-        
-        setTotalPatrimonio(total);
-        setPortfolioSummary({
-          rendaFixa,
-          rendaVariavel,
-          cripto,
-          internacional,
-          total
-        });
-        
-        toast({
-          title: "Dados carregados com sucesso",
-          description: "Informações de investimentos atualizadas via Open Finance.",
-        });
+        // Fetch investments from database
+        const invData = await investimentosService.getInvestimentos(user.id);
+        setInvestimentos(invData);
+
+        // Fetch market data from database
+        const mktData = await investimentosService.getMarketData();
+        setMarketData(mktData);
       } catch (error) {
-        console.error("Erro ao carregar dados do Open Finance:", error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao carregar dados",
-          description: "Não foi possível obter as informações de investimentos.",
-        });
+        console.error("Error fetching data:", error);
+        toast.error("Erro ao carregar dados de investimentos");
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchOpenFinanceData();
-  }, [toast]);
 
-  // Função para classificar os investimentos por categoria
-  const investimentosFiltrados = investimentos.filter(investimento => {
-    if (activeTab === "todos") return true;
-    if (activeTab === "renda_fixa" && investimento.categoria === "renda_fixa") return true;
-    if (activeTab === "renda_variavel" && investimento.categoria === "renda_variavel") return true;
-    if (activeTab === "cripto" && investimento.categoria === "cripto") return true;
-    if (activeTab === "internacional" && investimento.categoria === "internacional") return true;
-    return false;
+    fetchData();
+  }, [user]);
+
+  const filteredInvestimentos = investimentos.filter(inv => {
+    if (filter === "all") return true;
+    return inv.categoria === filter;
   });
-  
-  // Filtrar investimentos por banco
-  const filterByBank = (bank: string) => {
-    if (bank === "todos") {
-      setInvestimentos(mockInvestimentos);
-    } else {
-      const filtered = mockInvestimentos.filter(inv => inv.banco === bank);
-      setInvestimentos(filtered);
+
+  // Calcular valores totais
+  const totalInvestido = investimentos.reduce((sum, inv) => sum + inv.valorInicial, 0);
+  const totalRendaFixa = investimentos.filter(inv => inv.categoria === "renda_fixa").reduce((sum, inv) => sum + inv.valorInicial, 0);
+  const totalRendaVariavel = investimentos.filter(inv => inv.categoria === "renda_variavel").reduce((sum, inv) => sum + inv.valorInicial, 0);
+  const totalCripto = investimentos.filter(inv => inv.categoria === "cripto").reduce((sum, inv) => sum + inv.valorInicial, 0);
+  const totalInternacional = investimentos.filter(inv => inv.categoria === "internacional").reduce((sum, inv) => sum + inv.valorInicial, 0);
+
+  // Dados para o gráfico de composição da carteira
+  const portfolioData = [
+    { name: "Renda Fixa", value: totalRendaFixa },
+    { name: "Renda Variável", value: totalRendaVariavel },
+    { name: "Criptomoedas", value: totalCripto },
+    { name: "Internacional", value: totalInternacional },
+  ].filter(item => item.value > 0);
+
+  // Dados para o gráfico de evolução (simulado)
+  const evolucaoData = [
+    { name: "Jan", valor: totalInvestido * 0.96 },
+    { name: "Fev", valor: totalInvestido * 0.98 },
+    { name: "Mar", valor: totalInvestido * 1.01 },
+    { name: "Abr", valor: totalInvestido * 1.03 },
+    { name: "Mai", valor: totalInvestido * 1.05 },
+    { name: "Jun", valor: totalInvestido * 1.08 },
+    { name: "Jul", valor: totalInvestido * 1.09 },
+    { name: "Ago", valor: totalInvestido * 1.12 },
+  ];
+
+  // Mapeamento de categorias para nomes legíveis
+  const categoriaNomes = {
+    "renda_fixa": "Renda Fixa",
+    "renda_variavel": "Renda Variável",
+    "cripto": "Criptomoedas",
+    "internacional": "Internacional",
+    "all": "Todos"
+  };
+
+  // Renderiza os cards de mercado
+  const renderMarketCards = () => {
+    if (marketData.length === 0) {
+      return (
+        <Card className="col-span-full">
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Dados de mercado não disponíveis</p>
+          </CardContent>
+        </Card>
+      );
     }
-  };
 
-  // Formatar valores monetários
-  const formatMoney = (value: number, currency: string = "BRL") => {
-    return new Intl.NumberFormat('pt-BR', { 
-      style: 'currency', 
-      currency: currency 
-    }).format(value);
-  };
-
-  // Formatar datas
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-  
-  // Formatar hora da última atualização
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return marketData.map((item, index) => (
+      <Card key={index}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">{item.index}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatCurrency(item.value, "BRL").replace("R$", "")}</div>
+          <div className={`flex items-center text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {item.change >= 0 ? '+' : ''}{item.change.toFixed(2)}%
+          </div>
+        </CardContent>
+      </Card>
+    ));
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Investimentos</h2>
+          <h1 className="text-3xl font-bold tracking-tight">Investimentos</h1>
           <p className="text-muted-foreground">
-            Gerencie seu portfólio e acompanhe seu patrimônio
+            Acompanhe e gerencie seus investimentos
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => filterByBank("todos")}>Todos os Bancos</Button>
-          <Button variant="outline" onClick={() => filterByBank("Nubank")}>Nubank</Button>
-          <Button variant="outline" onClick={() => filterByBank("BTG")}>BTG Pactual</Button>
-          <Button onClick={() => navigate("/investimentos/novo")}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Investimento
-          </Button>
-        </div>
+        <Button onClick={() => navigate("/novo-investimento")}>
+          Novo Investimento
+        </Button>
       </div>
 
-      {/* Market Data Cards */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Mercado Hoje</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {marketData.slice(0, 4).map((item) => (
-            <Card key={item.index} className="overflow-hidden">
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">{item.index}</CardTitle>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {item.index.includes('Bitcoin') || item.index.includes('Ethereum') 
-                    ? formatMoney(item.value, 'USD')
-                    : item.index === 'Dólar' || item.index === 'Euro'
-                      ? formatMoney(item.value, 'BRL')
-                      : item.index.includes('Ibovespa') || item.index.includes('S&P') || item.index.includes('NASDAQ') || item.index.includes('EURO')
-                        ? new Intl.NumberFormat('pt-BR').format(item.value)
-                        : formatMoney(item.value)}
-                </div>
-                <div className={`flex items-center mt-2 ${item.change > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {item.change > 0 ? '+' : ''}{item.change}%
-                  <span className="text-xs text-muted-foreground ml-2">
-                    Atualizado às {formatTime(item.lastUpdate)}
-                  </span>
-                </div>
+                <div className="h-7 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
               </CardContent>
             </Card>
           ))}
         </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-4">
+          {renderMarketCards()}
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Resumo da Carteira</CardTitle>
+            <CardDescription>
+              Total investido: {formatCurrency(totalInvestido)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="h-[300px] w-full px-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsAreaChart
+                  data={evolucaoData}
+                  margin={{ top: 20, right: 20, left: 20, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0284c7" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#0284c7" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(Number(value)), "Valor"]}
+                    labelFormatter={(label) => `Mês: ${label}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="valor"
+                    stroke="#0284c7"
+                    fillOpacity={1}
+                    fill="url(#colorValor)"
+                  />
+                </RechartsAreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Composição</CardTitle>
+            <CardDescription>
+              Distribuição por categoria
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <Pie
+                    data={portfolioData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {portfolioData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Legend />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Portfolio Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Patrimônio Total</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatMoney(totalPatrimonio)}</div>
-            <p className="text-xs text-muted-foreground">
-              Valor atualizado de todos seus investimentos
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Rendimento Total</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatMoney(totalPatrimonio - investimentos.reduce((acc, inv) => acc + inv.valorInicial, 0))}
-            </div>
-            <div className="mt-2 flex items-center">
-              <span className="text-xs text-green-500">
-                +{((totalPatrimonio / investimentos.reduce((acc, inv) => acc + inv.valorInicial, 0) - 1) * 100).toFixed(2)}% do investimento inicial
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Distribuição</CardTitle>
-            <PiggyBank className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span>Renda Fixa</span>
-                <span>{Math.round(portfolioSummary.rendaFixa / portfolioSummary.total * 100)}%</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span>Renda Variável</span>
-                <span>{Math.round(portfolioSummary.rendaVariavel / portfolioSummary.total * 100)}%</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span>Criptomoedas</span>
-                <span>{Math.round(portfolioSummary.cripto / portfolioSummary.total * 100)}%</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span>Internacional</span>
-                <span>{Math.round(portfolioSummary.internacional / portfolioSummary.total * 100)}%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Tabs defaultValue="todos" value={activeTab} onValueChange={setActiveTab}>
-        <div className="border-b">
-          <TabsList className="mb-0">
-            <TabsTrigger value="todos">Todos</TabsTrigger>
-            <TabsTrigger value="renda_fixa">Renda Fixa</TabsTrigger>
-            <TabsTrigger value="renda_variavel">Renda Variável</TabsTrigger>
-            <TabsTrigger value="cripto">Criptomoedas</TabsTrigger>
-            <TabsTrigger value="internacional">Internacional</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <AreaChart className="h-4 w-4" />
+              Lista de Ativos
+            </TabsTrigger>
           </TabsList>
+
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="renda_fixa">Renda Fixa</SelectItem>
+              <SelectItem value="renda_variavel">Renda Variável</SelectItem>
+              <SelectItem value="cripto">Criptomoedas</SelectItem>
+              <SelectItem value="internacional">Internacional</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        
-        <TabsContent value="todos" className="pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {isLoading ? (
-              // Loading skeleton
-              Array(6).fill(0).map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="h-6 w-2/3 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="mt-1 h-4 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+
+        <TabsContent value="overview" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo por Categoria</CardTitle>
+              <CardDescription>
+                Detalhamento de investimentos por categoria
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {portfolioData.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4">
+                      Nenhum investimento cadastrado
+                    </p>
+                  ) : (
+                    portfolioData.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between pb-4 last:pb-0 border-b last:border-0">
+                        <div>
+                          <h3 className="font-medium">{item.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {investimentos.filter(inv => {
+                              if (item.name === "Renda Fixa") return inv.categoria === "renda_fixa";
+                              if (item.name === "Renda Variável") return inv.categoria === "renda_variavel";
+                              if (item.name === "Criptomoedas") return inv.categoria === "cripto";
+                              if (item.name === "Internacional") return inv.categoria === "internacional";
+                              return false;
+                            }).length} ativos
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{formatCurrency(item.value)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(item.value / totalInvestido * 100).toFixed(1)}%
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
-                      <div className="flex justify-between">
-                        <div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="list" className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de Investimentos</CardTitle>
+              <CardDescription>
+                {filter !== "all"
+                  ? `Investimentos em ${categoriaNomes[filter]}`
+                  : "Todos os investimentos"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="animate-pulse space-y-4">
+                  <div className="h-10 bg-gray-200 rounded w-full"></div>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-16 bg-gray-200 rounded w-full"></div>
+                  ))}
+                </div>
+              ) : (
+                <ScrollArea className="h-[400px]">
+                  {filteredInvestimentos.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Nenhum investimento encontrado</p>
+                      <Button variant="outline" className="mt-4" onClick={() => navigate("/novo-investimento")}>
+                        Adicionar Investimento
+                      </Button>
                     </div>
-                  </CardContent>
-                  <CardFooter className="border-t bg-muted/30 pt-3 pb-3 flex justify-end gap-2">
-                    <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : investimentosFiltrados.length > 0 ? (
-              investimentosFiltrados.map((investimento) => (
-                <Card key={investimento.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between">
-                      <CardTitle className="text-lg">{investimento.nome}</CardTitle>
-                      <Badge variant={
-                        investimento.categoria === "renda_fixa" ? "outline" :
-                        investimento.categoria === "renda_variavel" ? "secondary" :
-                        investimento.categoria === "cripto" ? "destructive" :
-                        "default"
-                      }>
-                        {investimento.categoria === "renda_fixa" ? "Renda Fixa" :
-                         investimento.categoria === "renda_variavel" ? "Renda Variável" :
-                         investimento.categoria === "cripto" ? "Cripto" :
-                         investimento.categoria === "internacional" ? "Internacional" :
-                         investimento.categoria}
-                      </Badge>
-                    </div>
-                    <CardDescription className="flex items-center mt-1">
-                      {investimento.codigo && (
-                        <span className="font-medium mr-2">{investimento.codigo}</span>
-                      )}
-                      {investimento.banco && (
-                        <Badge variant="outline" className="mr-2">{investimento.banco}</Badge>
-                      )}
-                      <LineChart className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {formatDate(investimento.dataCompra)}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Valor inicial:</span>
-                        <span className="font-medium">{formatMoney(investimento.valorInicial, investimento.moeda)}</span>
-                      </div>
-                      {"quantidade" in investimento && "precoUnitario" in investimento && (
-                        <div className="flex justify-between">
-                          <span className="text-sm">Quantidade:</span>
-                          <span className="font-medium">{investimento.quantidade} x {formatMoney(investimento.precoUnitario, investimento.moeda)}</span>
-                        </div>
-                      )}
-                      {"rentabilidade" in investimento && (
-                        <div className="flex justify-between">
-                          <span className="text-sm">Rentabilidade:</span>
-                          <span className="font-medium">{investimento.rentabilidade}% a.a.</span>
-                        </div>
-                      )}
-                      {"vencimento" in investimento && (
-                        <div className="flex justify-between">
-                          <span className="text-sm">Vencimento:</span>
-                          <span className="font-medium">{formatDate(investimento.vencimento)}</span>
-                        </div>
-                      )}
-                      {investimento.corretora && (
-                        <div className="flex justify-between">
-                          <span className="text-sm">Corretora:</span>
-                          <span className="font-medium">{investimento.corretora}</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t bg-muted/30 pt-3 pb-3 flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => navigate(`/investimentos/${investimento.id}`)}
-                    >
-                      Ver detalhes
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => navigate(`/investimentos/editar/${investimento.id}`)}
-                    >
-                      Editar
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center p-8 text-center">
-                <TrendingUp className="h-10 w-10 text-muted-foreground mb-3" />
-                <h3 className="text-lg font-medium">Nenhum investimento encontrado</h3>
-                <p className="text-muted-foreground">
-                  Clique em "Novo Investimento" para começar a registrar seu portfólio
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredInvestimentos.map((investimento) => (
+                          <TableRow 
+                            key={investimento.id} 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => navigate(`/investimentos/${investimento.id}`)}
+                          >
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{investimento.nome}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {investimento.codigo || 'Sem código'}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {categoriaNomes[investimento.categoria]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(investimento.valorInicial, investimento.moeda)}
+                            </TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/editar-investimento/${investimento.id}`);
+                                }}
+                              >
+                                Editar
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </ScrollArea>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-between border-t pt-4">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Total: {filteredInvestimentos.length} investimentos
                 </p>
               </div>
-            )}
-          </div>
+              <Button variant="outline" onClick={() => navigate("/investimentos")}>
+                Ver todos
+              </Button>
+            </CardFooter>
+          </Card>
         </TabsContent>
-        
-        {['renda_fixa', 'renda_variavel', 'cripto', 'internacional'].map((categoria) => (
-          <TabsContent value={categoria} key={categoria} className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Content will be filtered automatically by the logic above */}
-            </div>
-          </TabsContent>
-        ))}
       </Tabs>
     </div>
   );

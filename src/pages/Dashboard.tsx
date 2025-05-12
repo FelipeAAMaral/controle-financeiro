@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp, Plane, Check, Flag } from "lucide-react";
+import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp, Plane, Check, Flag, Database } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +12,7 @@ import FinancialTips from "@/components/dashboard/FinancialTips";
 import FinancialGoals from "@/components/dashboard/FinancialGoals";
 import FinancialOverview from "@/components/dashboard/FinancialOverview";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 
 // Mock travel data
 const mockTrips = [
@@ -68,6 +68,7 @@ const Dashboard = () => {
   
   const [selectedTab, setSelectedTab] = useState("overview");
   const [upcomingTrips, setUpcomingTrips] = useState([]);
+  const [databaseInitialized, setDatabaseInitialized] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -76,6 +77,23 @@ const Dashboard = () => {
 
   useEffect(() => {
     console.log("Dashboard useEffect running"); // Debug log
+    
+    // Check if database is initialized
+    const checkDatabase = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('investments')
+          .select('id')
+          .limit(1);
+        
+        setDatabaseInitialized(error ? false : true);
+      } catch (e) {
+        console.error("Error checking database:", e);
+        setDatabaseInitialized(false);
+      }
+    };
+    
+    checkDatabase();
     
     // Simular o carregamento de dados de patrimônio
     const timer = setTimeout(() => {
@@ -131,13 +149,26 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-gray-500">Visão geral das suas finanças em {capitalizedMonth}</p>
-        </div>
-      </div>
-
+      {databaseInitialized === false && (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Database className="h-5 w-5 text-amber-600" />
+              <p className="text-amber-800">
+                É necessário configurar o banco de dados para continuar usando o aplicativo.
+              </p>
+            </div>
+            <Button 
+              size="sm" 
+              variant="default"
+              onClick={() => navigate('/database-setup')}
+            >
+              Configurar Banco
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Cards de Saúde Financeira */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>

@@ -1,5 +1,4 @@
-
-import { Routes, Route } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Login from "./pages/auth/Login";
@@ -21,6 +20,7 @@ import Viagens from "./pages/Viagens";
 import Configuracoes from "./pages/Configuracoes";
 import SaudeFin from "./pages/SaudeFin";
 import InvestimentosDashboard from "./pages/InvestimentosDashboard";
+import DatabaseSetup from "./pages/DatabaseSetup";
 
 // Add a loading component to use with lazy loading
 const LoadingFallback = () => (
@@ -48,6 +48,15 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      {/* Database Setup */}
+      <Route path="/database-setup" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <DatabaseSetup />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
       
       {/* Protected Routes - Require Authentication */}
       <Route path="/" element={
