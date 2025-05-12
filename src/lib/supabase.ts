@@ -5,11 +5,17 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Check for missing environment variables in development
-if (import.meta.env.DEV && (!supabaseUrl || !supabaseAnonKey)) {
-  console.warn(
-    'Missing Supabase environment variables! Check .env.development or .env.local file.'
-  );
+// Check for missing environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  if (import.meta.env.DEV) {
+    console.error(
+      'Missing Supabase environment variables! Check .env.development or .env.local file.'
+    );
+  } else {
+    console.error(
+      'Missing Supabase environment variables! Check .env.production file.'
+    );
+  }
 }
 
 // Initialize the Supabase client
