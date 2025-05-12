@@ -1,3 +1,4 @@
+
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -141,8 +142,8 @@ export const useAuthProvider = (): {
         
         console.log("Attempting registration for:", email);
         
-        // For development purposes, we'll disable email confirmation
-        // to allow immediate login after registration
+        // Configuração para desativar a confirmação de email - adicionando emailRedirectTo
+        // e autoconfirm:true para permitir login imediato
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -150,8 +151,9 @@ export const useAuthProvider = (): {
             data: {
               name,
             },
-            // In development, we can skip email verification
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            // Desativando a verificação de email para desenvolvimento
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailConfirm: false
           }
         });
         
@@ -165,19 +167,17 @@ export const useAuthProvider = (): {
         if (data.user) {
           console.log("Registration successful, user created:", data.user.email);
           
-          // Check if email confirmation is required
+          // Se o usuário tiver uma sessão, ele será logado automaticamente
           if (data.session) {
-            // User is automatically signed in (email confirmation not required)
             console.log("User session available, user signed in automatically");
             setUser(formatUser(data.user, data.session));
             setSession(data.session);
-            toast.success("Cadastro realizado com sucesso!");
+            toast.success("Cadastro realizado com sucesso! Você foi conectado automaticamente.");
             navigate("/");
           } else {
-            // Email confirmation is required
-            console.log("Email confirmation required");
-            toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
-            navigate("/login", { state: { emailConfirmationPending: true, email } });
+            // Tentar fazer login automático após o registro
+            console.log("No session after registration, attempting automatic login");
+            await login(email, password);
           }
         }
       } catch (error) {

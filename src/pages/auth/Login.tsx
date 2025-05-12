@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,21 +18,27 @@ interface LocationState {
 
 const Login = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = location.state as LocationState;
   const [email, setEmail] = useState(state?.email || "");
   const [password, setPassword] = useState("");
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const { login, loginWithGoogle, loading, error } = useAuth();
+  const { login, loginWithGoogle, loading, error, session } = useAuth();
   const [registrationMessage, setRegistrationMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user was redirected after registration with email confirmation pending
+    // Redirecionar para a página inicial se já estiver autenticado
+    if (session) {
+      navigate('/');
+    }
+    
+    // Mensagem após registro bem-sucedido
     if (state?.emailConfirmationPending) {
       setRegistrationMessage(
-        "Conta criada com sucesso! Aguarde alguns momentos e tente fazer login."
+        "Conta criada com sucesso! Você pode fazer login agora."
       );
     }
-  }, [state]);
+  }, [session, state, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
