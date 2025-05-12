@@ -21,6 +21,9 @@ const queryClient = new QueryClient({
 const App = () => {
   const { AuthProvider } = useAuthProvider();
 
+  // Add console log to check app rendering
+  console.log("Rendering App component");
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

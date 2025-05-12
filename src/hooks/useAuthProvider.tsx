@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { AuthContext } from "@/contexts/AuthContext";
-import { AuthUser, AuthContextType } from "@/types/auth";
+import { AuthUser } from "@/types/auth";
 import { formatUser } from "@/utils/authUtils";
-import { Session } from "@supabase/supabase-js";
 
 // Create the hook that will provide the Auth functionality
 export const useAuthProvider = () => {
@@ -13,13 +12,14 @@ export const useAuthProvider = () => {
   const AuthProvider = ({ children }: { children: ReactNode }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState<AuthUser | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
+    const [session, setSession] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Fetch user profile data from the database
     const fetchUserProfile = async (userId: string) => {
       try {
+        console.log("Fetching user profile for:", userId);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -38,6 +38,7 @@ export const useAuthProvider = () => {
         }
         
         if (data) {
+          console.log("Profile data received:", data);
           // Merge database profile with auth user data
           setUser(prevUser => {
             if (!prevUser) return null;
@@ -79,6 +80,7 @@ export const useAuthProvider = () => {
     useEffect(() => {
       const setupSession = async () => {
         try {
+          console.log("Setting up session...");
           // Get current session
           const { data, error } = await supabase.auth.getSession();
           
@@ -88,15 +90,18 @@ export const useAuthProvider = () => {
             return;
           }
 
+          console.log("Session check result:", data.session ? "Session exists" : "No session");
+
           if (data.session) {
             setSession(data.session);
-            const { user } = data.session;
-            if (user) {
-              const authUser = formatUser(user, data.session);
-              setUser(authUser);
+            const { user: authUser } = data.session;
+            if (authUser) {
+              const formattedUser = formatUser(authUser, data.session);
+              console.log("Setting user from session:", formattedUser);
+              setUser(formattedUser);
               
               // Fetch additional user data from database
-              await fetchUserProfile(authUser.id);
+              await fetchUserProfile(formattedUser.id);
             }
           }
         } catch (err) {
@@ -119,15 +124,10 @@ export const useAuthProvider = () => {
           
           // Fetch additional user data from database
           await fetchUserProfile(authUser.id);
-          
-          // Navigate to home if on login page
-          if (window.location.pathname === '/login') {
-            navigate('/');
-          }
         } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing session and user data");
           setSession(null);
           setUser(null);
-          navigate('/login');
         }
       });
 
@@ -147,7 +147,7 @@ export const useAuthProvider = () => {
         if (error) {
           setError(error.message);
           toast.error(error.message || "Erro ao fazer login");
-          throw { message: error.message, code: error.code };
+          throw error;
         }
 
         if (data.user) {
@@ -159,18 +159,13 @@ export const useAuthProvider = () => {
           navigate("/");
         }
       } catch (error: any) {
-        if (!error.code) {
-          const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
-          setError(errorMessage);
-          toast.error(errorMessage);
-        }
-        throw error;
+        console.error("Login error:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    // Other auth methods - simplified but keeping functionality
+    // Other auth methods
     const loginWithGoogle = async () => {
       try {
         setLoading(true);
@@ -185,7 +180,8 @@ export const useAuthProvider = () => {
           setError(error.message);
           toast.error(error.message || "Erro ao fazer login com Google");
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Google login error:", error);
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login com Google";
         setError(errorMessage);
         toast.error(errorMessage);
@@ -232,7 +228,8 @@ export const useAuthProvider = () => {
             navigate("/");
           } 
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Registration error:", error);
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer cadastro";
         setError(errorMessage);
         toast.error(errorMessage);
@@ -256,7 +253,8 @@ export const useAuthProvider = () => {
         setSession(null);
         toast.success("Logout realizado com sucesso");
         navigate("/login");
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Logout error:", error);
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer logout";
         setError(errorMessage);
         toast.error(errorMessage);
@@ -282,7 +280,8 @@ export const useAuthProvider = () => {
         
         toast.success("Um email com instruções para redefinir sua senha foi enviado");
         navigate("/login");
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Password reset error:", error);
         const errorMessage = error instanceof Error ? error.message : "Erro ao redefinir senha";
         setError(errorMessage);
         toast.error(errorMessage);
@@ -334,7 +333,8 @@ export const useAuthProvider = () => {
         });
         
         toast.success("Perfil atualizado com sucesso");
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Profile update error:", error);
         const errorMessage = error instanceof Error ? error.message : "Erro ao atualizar perfil";
         setError(errorMessage);
         toast.error(errorMessage);
@@ -344,21 +344,25 @@ export const useAuthProvider = () => {
     };
 
     // Return the AuthContext provider with all authentication functions
-    const value: AuthContextType = {
-      user,
-      session,
-      loading,
-      error,
-      login,
-      loginWithGoogle,
-      register,
-      logout,
-      resetPassword,
-      updateProfile,
-      fetchUserProfile
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+      <AuthContext.Provider 
+        value={{
+          user,
+          session,
+          loading,
+          error,
+          login,
+          loginWithGoogle,
+          register,
+          logout,
+          resetPassword,
+          updateProfile,
+          fetchUserProfile
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    );
   };
 
   return { AuthProvider };

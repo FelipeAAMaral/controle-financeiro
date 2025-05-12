@@ -30,8 +30,11 @@ const Login = () => {
   const [isEmailNotConfirmed, setIsEmailNotConfirmed] = useState(false);
 
   useEffect(() => {
+    console.log("Login component - checking authentication status");
+    
     // Redirect to homepage if already authenticated
     if (session && user) {
+      console.log("User already authenticated, redirecting to home");
       const redirectPath = state?.from || '/';
       navigate(redirectPath);
     }
@@ -48,8 +51,10 @@ const Login = () => {
     e.preventDefault();
     try {
       setIsEmailNotConfirmed(false);
+      console.log("Attempting login with email:", email);
       await login(email, password);
     } catch (err: any) {
+      console.error("Login error:", err);
       // Check if the error is "email not confirmed"
       if (err?.code === "email_not_confirmed") {
         setIsEmailNotConfirmed(true);
@@ -87,6 +92,13 @@ const Login = () => {
 
   // This prevents the blank screen on the login page
   console.log("Rendering Login component", { user, session, loading });
+
+  // If already authenticated and not on login page, redirect to home
+  if (session && user && !location.pathname.includes('/login')) {
+    console.log("Redirecting to home from Login component");
+    navigate('/');
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-blue-50 to-blue-100">
