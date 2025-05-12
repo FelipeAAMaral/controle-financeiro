@@ -20,5 +20,5 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
-  fetchUserProfile?: (userId: string) => Promise<void>;
+  fetchUserProfile: (userId: string) => Promise<void>;
 }
