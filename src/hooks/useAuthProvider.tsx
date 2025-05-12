@@ -214,6 +214,9 @@ export const useAuthProvider = () => {
         
         console.log("Attempting registration for:", email);
         
+        // Get current origin for proper redirect
+        const origin = window.location.origin;
+        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -221,8 +224,8 @@ export const useAuthProvider = () => {
             data: {
               name,
             },
-            // Configure redirection
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            // Configure redirection with proper origin
+            emailRedirectTo: `${origin}/auth/callback`,
           }
         });
         
@@ -236,6 +239,18 @@ export const useAuthProvider = () => {
         if (data.user) {
           console.log("Registration successful, user created:", data.user.email);
           
+          // If email confirmation is required, redirect to login with a message
+          if (!data.session) {
+            toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
+            navigate("/login", { 
+              state: { 
+                emailConfirmationPending: true,
+                email: email
+              } 
+            });
+            return;
+          }
+          
           // If the user has a session, they will be logged in automatically
           if (data.session) {
             console.log("User session available, user signed in automatically");
@@ -248,11 +263,7 @@ export const useAuthProvider = () => {
             
             toast.success("Cadastro realizado com sucesso! Você foi conectado automaticamente.");
             navigate("/");
-          } else {
-            // Try to log in automatically after registration
-            console.log("No session after registration, attempting automatic login");
-            await login(email, password);
-          }
+          } 
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer cadastro";
