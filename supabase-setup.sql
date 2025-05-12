@@ -368,4 +368,3 @@ VALUES
   ('EUR', 'Euro', 5.67),
   ('GBP', 'Libra Esterlina', 6.72),
   ('JPY', 'Iene Japonês', 0.048);
-
