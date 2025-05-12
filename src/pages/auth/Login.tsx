@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface LocationState {
   emailConfirmationPending?: boolean;
@@ -25,15 +26,16 @@ const Login = () => {
   const [googleError, setGoogleError] = useState<string | null>(null);
   const { login, loginWithGoogle, loading, error, session, user } = useAuth();
   const [registrationMessage, setRegistrationMessage] = useState<string | null>(null);
+  const [isEmailNotConfirmed, setIsEmailNotConfirmed] = useState(false);
 
   useEffect(() => {
-    // Redirecionar para a página inicial se já estiver autenticado
+    // Redirect to homepage if already authenticated
     if (session && user) {
       const redirectPath = state?.from || '/';
       navigate(redirectPath);
     }
     
-    // Mensagem após registro bem-sucedido
+    // Message after successful registration
     if (state?.emailConfirmationPending) {
       setRegistrationMessage(
         "Conta criada com sucesso! Você pode fazer login agora."
@@ -43,7 +45,15 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await login(email, password);
+    try {
+      setIsEmailNotConfirmed(false);
+      await login(email, password);
+    } catch (err: any) {
+      // Check if the error is "email not confirmed"
+      if (err?.code === "email_not_confirmed") {
+        setIsEmailNotConfirmed(true);
+      }
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -53,6 +63,25 @@ const Login = () => {
     } catch (err) {
       setGoogleError("Falha na autenticação com Google. Verifique se o provedor está ativado no Supabase.");
       console.error("Google login error:", err);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      // Use Supabase directly to resend the verification email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email
+      });
+      
+      if (error) {
+        toast.error("Erro ao reenviar o email de verificação: " + error.message);
+      } else {
+        toast.success("Email de verificação reenviado com sucesso!");
+      }
+    } catch (err) {
+      console.error("Error resending verification email:", err);
+      toast.error("Erro ao reenviar o email de verificação");
     }
   };
 
@@ -75,7 +104,24 @@ const Login = () => {
             </Alert>
           )}
           
-          {error && (
+          {isEmailNotConfirmed && (
+            <Alert variant="default" className="mb-6 border-amber-500 bg-amber-50">
+              <Info className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-amber-800">
+                <div>Email não confirmado. Por favor, verifique sua caixa de entrada e confirme seu email.</div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleResendVerification} 
+                  className="mt-2 text-xs"
+                >
+                  Reenviar email de verificação
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {error && !isEmailNotConfirmed && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>

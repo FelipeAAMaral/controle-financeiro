@@ -1,4 +1,3 @@
-
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -148,7 +147,9 @@ export const useAuthProvider = () => {
           console.error("Login error:", error);
           setError(error.message);
           toast.error(error.message || "Erro ao fazer login");
-          return;
+          
+          // Propagate the error with code for component-level handling
+          throw { message: error.message, code: error.code };
         }
 
         if (data.user) {
@@ -163,11 +164,14 @@ export const useAuthProvider = () => {
           toast.success("Login realizado com sucesso!");
           navigate("/");
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
-        console.error("Login exception:", errorMessage);
-        setError(errorMessage);
-        toast.error(errorMessage);
+      } catch (error: any) {
+        if (!error.code) { // Only handle generic errors here, specific ones are thrown
+          const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
+          console.error("Login exception:", errorMessage);
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
+        throw error; // Re-throw for component level handling
       } finally {
         setLoading(false);
       }
