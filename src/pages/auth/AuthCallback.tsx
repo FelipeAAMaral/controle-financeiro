@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const { fetchUserProfile } = useAuth();
   const [message, setMessage] = useState("Autenticando...");
 
   useEffect(() => {
@@ -25,6 +27,16 @@ export default function AuthCallback() {
         if (data.session) {
           console.log("Auth callback successful, session obtained");
           setMessage("Login realizado com sucesso! Redirecionando...");
+          
+          // If we have user data, fetch their profile
+          if (data.session.user && typeof fetchUserProfile === 'function') {
+            try {
+              await fetchUserProfile(data.session.user.id);
+            } catch (err) {
+              console.error("Error fetching user profile:", err);
+            }
+          }
+          
           toast.success("Login realizado com sucesso!");
           setTimeout(() => navigate("/"), 1000);
         } else {
@@ -40,7 +52,7 @@ export default function AuthCallback() {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, fetchUserProfile]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

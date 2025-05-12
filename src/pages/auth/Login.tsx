@@ -23,13 +23,14 @@ const Login = () => {
   const [email, setEmail] = useState(state?.email || "");
   const [password, setPassword] = useState("");
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const { login, loginWithGoogle, loading, error, session } = useAuth();
+  const { login, loginWithGoogle, loading, error, session, user } = useAuth();
   const [registrationMessage, setRegistrationMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirecionar para a página inicial se já estiver autenticado
-    if (session) {
-      navigate('/');
+    if (session && user) {
+      const redirectPath = state?.from || '/';
+      navigate(redirectPath);
     }
     
     // Mensagem após registro bem-sucedido
@@ -38,7 +39,7 @@ const Login = () => {
         "Conta criada com sucesso! Você pode fazer login agora."
       );
     }
-  }, [session, state, navigate]);
+  }, [session, state, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

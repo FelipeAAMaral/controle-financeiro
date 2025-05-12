@@ -1,3 +1,4 @@
+
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -35,7 +36,11 @@ export const useAuthProvider = (): {
             setSession(data.session);
             const { user } = data.session;
             if (user) {
-              setUser(formatUser(user, data.session));
+              const authUser = formatUser(user, data.session);
+              setUser(authUser);
+              
+              // Fetch additional user data from database
+              await fetchUserProfile(authUser.id);
             }
           }
         } catch (err) {
@@ -52,7 +57,11 @@ export const useAuthProvider = (): {
         console.log("Auth state changed:", event, newSession?.user?.email);
         if (event === 'SIGNED_IN' && newSession) {
           setSession(newSession);
-          setUser(formatUser(newSession.user, newSession));
+          const authUser = formatUser(newSession.user, newSession);
+          setUser(authUser);
+          
+          // Fetch additional user data from database
+          await fetchUserProfile(authUser.id);
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
@@ -63,6 +72,65 @@ export const useAuthProvider = (): {
         data.subscription.unsubscribe();
       };
     }, []);
+    
+    // Fetch user profile data from the database
+    const fetchUserProfile = async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          // If profile doesn't exist, create it
+          if (error.code === 'PGRST116') {
+            if (user) {
+              await createUserProfile(userId);
+            }
+          }
+          return;
+        }
+        
+        if (data) {
+          // Merge database profile with auth user data
+          setUser(prevUser => {
+            if (!prevUser) return null;
+            return {
+              ...prevUser,
+              name: data.name || prevUser.name,
+              photoURL: data.avatar_url || prevUser.photoURL,
+              // Add any other profile fields you want to include
+            };
+          });
+        }
+      } catch (err) {
+        console.error("Error in fetchUserProfile:", err);
+      }
+    };
+    
+    // Create user profile in the database if it doesn't exist
+    const createUserProfile = async (userId: string) => {
+      try {
+        if (!user) return;
+        
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            name: user.name,
+            avatar_url: user.photoURL,
+            created_at: new Date()
+          });
+        
+        if (error) {
+          console.error("Error creating user profile:", error);
+        }
+      } catch (err) {
+        console.error("Error in createUserProfile:", err);
+      }
+    };
 
     const login = async (email: string, password: string) => {
       try {
@@ -85,8 +153,13 @@ export const useAuthProvider = (): {
 
         if (data.user) {
           console.log("Login successful for:", data.user.email);
-          setUser(formatUser(data.user, data.session));
+          const authUser = formatUser(data.user, data.session);
+          setUser(authUser);
           setSession(data.session);
+          
+          // Fetch additional user data from database
+          await fetchUserProfile(authUser.id);
+          
           toast.success("Login realizado com sucesso!");
           navigate("/");
         }
@@ -167,8 +240,13 @@ export const useAuthProvider = (): {
           // Se o usuário tiver uma sessão, ele será logado automaticamente
           if (data.session) {
             console.log("User session available, user signed in automatically");
-            setUser(formatUser(data.user, data.session));
+            const authUser = formatUser(data.user, data.session);
+            setUser(authUser);
             setSession(data.session);
+            
+            // Create user profile in database
+            await createUserProfile(data.user.id);
+            
             toast.success("Cadastro realizado com sucesso! Você foi conectado automaticamente.");
             navigate("/");
           } else {
