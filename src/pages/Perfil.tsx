@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 
 const Perfil = () => {
-  const { user, updateProfile, loading, logout } = useAuth();
+  const { user, updateProfile, loading: authLoading, logout } = useAuth();
   const [name, setName] = useState("");
   const [photoURL, setPhotoURL] = useState("");
   const [email, setEmail] = useState("");
@@ -23,6 +23,7 @@ const Perfil = () => {
 
   useEffect(() => {
     if (user) {
+      console.log("User data loaded:", user);
       setName(user.name || "");
       setPhotoURL(user.photoURL || "");
       setEmail(user.email || "");
@@ -111,6 +112,26 @@ const Perfil = () => {
       console.error("Erro ao fazer logout:", error);
     }
   };
+
+  // Add debug output to help diagnose issues
+  console.log("Rendering Perfil component", { user, authLoading });
+
+  // Show loading state while user data is being fetched
+  if (authLoading) {
+    return (
+      <div className="container max-w-4xl py-6">
+        <h1 className="text-2xl font-bold mb-6">Carregando perfil...</h1>
+        <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
+          <Card className="animate-pulse">
+            <CardContent className="h-64"></CardContent>
+          </Card>
+          <Card className="animate-pulse">
+            <CardContent className="h-64"></CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -236,7 +257,7 @@ const Perfil = () => {
               </div>
               
               <div className="pt-4">
-                <Button type="submit" disabled={isSaving || loading} className="w-full">
+                <Button type="submit" disabled={isSaving || authLoading} className="w-full">
                   {isSaving ? (
                     <>
                       <span className="animate-spin mr-2">⊚</span>
