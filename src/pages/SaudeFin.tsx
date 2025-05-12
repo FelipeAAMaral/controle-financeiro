@@ -8,9 +8,9 @@ const SaudeFin = () => {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Saúde Financeira</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Acompanhamento Mensal</h2>
           <p className="text-muted-foreground">
-            Acompanhe a sua saúde financeira e tenha uma visão completa das suas finanças
+            Acompanhe o seu desempenho financeiro e tenha uma visão completa das suas finanças
           </p>
         </div>
       </div>

@@ -20,6 +20,7 @@ import Transacoes from "./pages/Transacoes";
 import Viagens from "./pages/Viagens";
 import Configuracoes from "./pages/Configuracoes";
 import SaudeFin from "./pages/SaudeFin";
+import InvestimentosDashboard from "./pages/InvestimentosDashboard";
 
 // Add a loading component to use with lazy loading
 const LoadingFallback = () => (
@@ -126,6 +127,15 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <MainLayout>
             <SaudeFin />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* New Investimentos route */}
+      <Route path="/investimentos" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <InvestimentosDashboard />
           </MainLayout>
         </ProtectedRoute>
       } />

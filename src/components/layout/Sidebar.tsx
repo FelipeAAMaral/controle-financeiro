@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import { 
   Home, PieChart, CalendarDays, FileText, User, LogOut,
   BarChart, Settings, Wallet, PiggyBank, ChevronLeft, ChevronRight, Plane,
-  CreditCard, HeartPulse
+  CreditCard, HeartPulse, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -135,8 +135,8 @@ const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
               Controle Mensal
             </SidebarLink>
             
-            {/* Saúde Financeira Section */}
-            <MenuSection title="Saúde Financeira" collapsed={!open}>
+            {/* Acompanhamento Mensal Section (renamed from Saúde Financeira) */}
+            <MenuSection title="Acompanhamento Mensal" collapsed={!open}>
               <SidebarLink to="/indicadores" icon={<BarChart size={18} />} collapsed={!open}>
                 Indicadores
               </SidebarLink>
@@ -148,6 +148,13 @@ const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
               </SidebarLink>
               <SidebarLink to="/transacoes" icon={<Wallet size={18} />} collapsed={!open}>
                 Transações
+              </SidebarLink>
+            </MenuSection>
+            
+            {/* New Investimentos Section */}
+            <MenuSection title="Investimentos" collapsed={!open}>
+              <SidebarLink to="/investimentos" icon={<TrendingUp size={18} />} collapsed={!open}>
+                Meus Investimentos
               </SidebarLink>
             </MenuSection>
             
