@@ -11,6 +11,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Show a loading state while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
@@ -27,10 +28,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
+  // Redirect to login if user is not authenticated
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // If authenticated, render the children
   return children;
 };
 

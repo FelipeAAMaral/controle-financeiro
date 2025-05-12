@@ -11,6 +11,13 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import ControleMensal from "./pages/ControleMensal";
+import Indicadores from "./pages/Indicadores";
+import GastosRecorrentes from "./pages/GastosRecorrentes";
+import Objetivos from "./pages/Objetivos";
+import Transacoes from "./pages/Transacoes";
+import Viagens from "./pages/Viagens";
+import Configuracoes from "./pages/Configuracoes";
 
 // Add a loading component to use with lazy loading
 const LoadingFallback = () => (
@@ -53,7 +60,61 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
-      {/* Add other protected routes following the same pattern */}
+      <Route path="/controle-mensal" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ControleMensal />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/indicadores" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Indicadores />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/gastos-recorrentes" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <GastosRecorrentes />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/objetivos" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Objetivos />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/transacoes" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Transacoes />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/viagens" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Viagens />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/configuracoes" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Configuracoes />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
       
       {/* 404 - Not Found Route */}
       <Route path="*" element={<NotFound />} />
