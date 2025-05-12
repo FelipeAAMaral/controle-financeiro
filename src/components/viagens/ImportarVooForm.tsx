@@ -13,13 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface ImportarVooFormProps {
   open: boolean;
@@ -28,10 +21,18 @@ interface ImportarVooFormProps {
   viagemId?: string;
 }
 
+// Mapeamento de códigos de reserva para companhias aéreas (simulação)
+const reservaToCompanhia: Record<string, string> = {
+  "ABC123": "LATAM",
+  "XYZ789": "GOL",
+  "JKL456": "Azul",
+  "MNO567": "Air France",
+  "PQR890": "TAP",
+}
+
 export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemId }: ImportarVooFormProps) {
   const [codigoReserva, setCodigoReserva] = useState("");
   const [sobrenome, setSobrenome] = useState("");
-  const [companhiaAerea, setCompanhiaAerea] = useState(""); // New state for airline selection
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,9 +48,12 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
     setError(null);
     
     try {
-      // Simular uma chamada API para importar voos
+      // Simular identificação automática da companhia aérea
       // Em um app real, isso seria uma chamada para um serviço externo
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Determina a companhia aérea com base no código de reserva
+      const companhiaAerea = reservaToCompanhia[codigoReserva] || "LATAM"; // Companhia padrão se não encontrada
       
       // Mock dos dados de voo retornados
       const mockVoosImportados = [
@@ -63,7 +67,7 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
           data: "2023-12-01",
           horarioPartida: "22:30",
           horarioChegada: "14:45",
-          companhia: companhiaAerea || "Air France", // Use selected airline or default
+          companhia: companhiaAerea,
           numeroVoo: "AF457",
           terminal: "3",
           portao: "22",
@@ -82,12 +86,11 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
         }
       ];
       
-      toast.success("Voos importados com sucesso!");
+      toast.success(`Voos importados com sucesso! Companhia: ${companhiaAerea}`);
       onSuccess(mockVoosImportados);
       onOpenChange(false);
       
       // Configurar polling para atualizações de reserva (a cada 30 minutos)
-      // Em um cenário real, isso poderia ser feito com websockets ou um serviço de notificações
       localStorage.setItem(`reserva_${codigoReserva}`, JSON.stringify({
         codigoReserva,
         sobrenome,
@@ -140,27 +143,6 @@ export default function ImportarVooForm({ open, onOpenChange, onSuccess, viagemI
               placeholder="Ex: SILVA"
               className="uppercase"
             />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="companhiaAerea">Companhia Aérea</Label>
-            <Select value={companhiaAerea} onValueChange={setCompanhiaAerea}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a companhia aérea" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="LATAM">LATAM Airlines</SelectItem>
-                <SelectItem value="GOL">GOL Linhas Aéreas</SelectItem>
-                <SelectItem value="Azul">Azul Linhas Aéreas</SelectItem>
-                <SelectItem value="Air France">Air France</SelectItem>
-                <SelectItem value="TAP">TAP Air Portugal</SelectItem>
-                <SelectItem value="American Airlines">American Airlines</SelectItem>
-                <SelectItem value="British Airways">British Airways</SelectItem>
-                <SelectItem value="Emirates">Emirates</SelectItem>
-                <SelectItem value="Lufthansa">Lufthansa</SelectItem>
-                <SelectItem value="KLM">KLM</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           
           <DialogFooter className="mt-4">

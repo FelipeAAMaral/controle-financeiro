@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 // Updated type definition for objectives
 type Objetivo = {
@@ -18,6 +19,7 @@ type Objetivo = {
   icon: string;
   color: string;
   user_id: string;
+  thumbnail?: string;
 }
 
 const mockGoals: Objetivo[] = [
@@ -29,7 +31,8 @@ const mockGoals: Objetivo[] = [
     deadline: "2023-12-31",
     icon: "🛡️",
     color: "bg-blue-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9"
   },
   {
     id: "2",
@@ -39,7 +42,8 @@ const mockGoals: Objetivo[] = [
     deadline: "2024-07-31",
     icon: "✈️",
     color: "bg-purple-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1721322800607-8c38375eef04"
   },
   {
     id: "3",
@@ -49,7 +53,8 @@ const mockGoals: Objetivo[] = [
     deadline: "2023-09-30",
     icon: "💻",
     color: "bg-green-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1472396961693-142e6e269027"
   },
   {
     id: "4",
@@ -59,7 +64,8 @@ const mockGoals: Objetivo[] = [
     deadline: "2026-01-31",
     icon: "🏠",
     color: "bg-orange-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d"
   }
 ];
 
@@ -165,34 +171,74 @@ export default function Objetivos() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {objetivos.map((objetivo) => (
             <Card key={objetivo.id} className="overflow-hidden">
-              <CardHeader className={`${objetivo.color} text-white flex flex-row items-center`}>
-                <div className="flex-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-xl">{objetivo.icon}</span>
-                    {objetivo.title}
-                  </CardTitle>
+              {objetivo.thumbnail ? (
+                <div className="relative">
+                  <AspectRatio ratio={16/9}>
+                    <img 
+                      src={objetivo.thumbnail} 
+                      alt={objetivo.title} 
+                      className="object-cover w-full h-full"
+                    />
+                  </AspectRatio>
+                  <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4`}>
+                    <div className="flex w-full justify-between items-center">
+                      <CardTitle className="flex items-center gap-2 text-white">
+                        <span className="text-xl">{objetivo.icon}</span>
+                        {objetivo.title}
+                      </CardTitle>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white hover:bg-white/20"
+                          onClick={() => handleEditGoal(objetivo.id)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white hover:bg-white/20"
+                          onClick={() => handleDeleteGoal(objetivo.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/20"
-                    onClick={() => handleEditGoal(objetivo.id)}
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span className="sr-only">Editar</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/20"
-                    onClick={() => handleDeleteGoal(objetivo.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Excluir</span>
-                  </Button>
-                </div>
-              </CardHeader>
+              ) : (
+                <CardHeader className={`${objetivo.color} text-white flex flex-row items-center`}>
+                  <div className="flex-1">
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="text-xl">{objetivo.icon}</span>
+                      {objetivo.title}
+                    </CardTitle>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white hover:bg-white/20"
+                      onClick={() => handleEditGoal(objetivo.id)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Editar</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white hover:bg-white/20"
+                      onClick={() => handleDeleteGoal(objetivo.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Excluir</span>
+                    </Button>
+                  </div>
+                </CardHeader>
+              )}
               <CardContent className="p-6">
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Progresso</span>

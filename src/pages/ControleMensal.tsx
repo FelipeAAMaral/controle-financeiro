@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 const months = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -51,9 +52,57 @@ const ControleMensal = () => {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [isLoading, setIsLoading] = useState(false);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [creditCardInstallments, setCreditCardInstallments] = useState<number>(0);
 
-  // Combinando gastos recorrentes e transações mensais
-  const allTransactions = [...recurringExpenses, ...monthlyTransactions].sort((a, b) => a.day - b.day);
+  // Função para verificar se o mês selecionado pode ser atualizado
+  const canUpdate = () => {
+    // Verifica se o mês selecionado é o mês atual ou até um mês à frente
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Se for ano atual
+    if (selectedYear === currentYear) {
+      // Permite até um mês à frente ou o número de parcelas do cartão
+      return selectedMonth <= currentMonth + 1 || selectedMonth <= currentMonth + creditCardInstallments;
+    }
+    // Se for próximo ano, só permite se estiver dentro do limite de parcelas
+    else if (selectedYear === currentYear + 1) {
+      return currentMonth + creditCardInstallments >= 12 + selectedMonth;
+    }
+    
+    return false;
+  };
+
+  // Simula a obtenção do número de parcelas via OpenFinance
+  useEffect(() => {
+    // Em um cenário real, aqui seria chamada a API do OpenFinance
+    // Simulando que temos parcelas para os próximos 3 meses
+    setCreditCardInstallments(3);
+  }, []);
+
+  // Efeito para carregar as transações do mês selecionado
+  useEffect(() => {
+    // Combinando gastos recorrentes e transações mensais
+    setAllTransactions([...recurringExpenses, ...monthlyTransactions].sort((a, b) => a.day - b.day));
+  }, [selectedMonth, selectedYear]);
+
+  const handleUpdateData = () => {
+    if (!canUpdate()) {
+      toast.error("Não é possível atualizar dados para este mês");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Simula uma chamada de API para atualizar os dados
+    setTimeout(() => {
+      toast.success(`Dados de ${months[selectedMonth]} de ${selectedYear} atualizados com sucesso!`);
+      setIsLoading(false);
+    }, 1000);
+  };
   
   // Calculando totais
   const totalEntradas = allTransactions
@@ -116,6 +165,20 @@ const ControleMensal = () => {
             </SelectContent>
           </Select>
         </div>
+        
+        <Button 
+          variant="outline" 
+          onClick={handleUpdateData} 
+          disabled={isLoading || !canUpdate()}
+          className="w-full md:w-auto"
+        >
+          {isLoading ? (
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Atualizar Dados
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

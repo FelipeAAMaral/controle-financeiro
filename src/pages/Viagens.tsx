@@ -11,6 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import ImportarVooForm from "@/components/viagens/ImportarVooForm";
 import { iniciarPollingReservas } from "@/services/ReservasService";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 
 // Mock data
 const mockViagens: Viagem[] = [
@@ -215,6 +223,10 @@ const Viagens = () => {
   const [visualizacao, setVisualizacao] = useState<"lista" | "voos">("lista");
   const [isImportFormOpen, setIsImportFormOpen] = useState(false);
   const [atualizandoReservas, setAtualizandoReservas] = useState(false);
+  
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4; // Número de voos por página
 
   useEffect(() => {
     // Iniciar o polling para verificação automática das reservas
@@ -242,6 +254,11 @@ const Viagens = () => {
       cancelarPolling();
     };
   }, [viagens]);
+
+  useEffect(() => {
+    // Resetar a paginação quando mudar o filtro
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
@@ -297,6 +314,12 @@ const Viagens = () => {
     return true;
   });
 
+  // Implementar paginação
+  const totalPages = Math.ceil(voosFiltrados.length / itemsPerPage);
+  const indexOfLastVoo = currentPage * itemsPerPage;
+  const indexOfFirstVoo = indexOfLastVoo - itemsPerPage;
+  const currentVoos = voosFiltrados.slice(indexOfFirstVoo, indexOfLastVoo);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -342,7 +365,7 @@ const Viagens = () => {
         {visualizacao === "voos" && (
           <div className="flex justify-between items-center pt-4">
             <div className="text-sm text-muted-foreground">
-              Visualizando {voosFiltrados.length} voos
+              Visualizando {currentVoos.length} de {voosFiltrados.length} voos
             </div>
             <div className="flex gap-2">
               <Button 
@@ -443,8 +466,8 @@ const Viagens = () => {
         ) : (
           <TabsContent value="todas" className="pt-4">
             <div className="flex flex-col space-y-6">
-              {voosFiltrados.length > 0 ? (
-                voosFiltrados.map((voo) => {
+              {currentVoos.length > 0 ? (
+                currentVoos.map((voo) => {
                   const viagemRelacionada = viagens.find(v => v.id === voo.viagemId);
                   const horaPartida = voo.horarioPartida.split(':');
                   const horaChegada = voo.horarioChegada.split(':');
@@ -563,6 +586,38 @@ const Viagens = () => {
                     Importar Voos
                   </Button>
                 </div>
+              )}
+              
+              {/* Adicionar paginação para os voos */}
+              {voosFiltrados.length > itemsPerPage && (
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          isActive={page === currentPage}
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               )}
             </div>
           </TabsContent>

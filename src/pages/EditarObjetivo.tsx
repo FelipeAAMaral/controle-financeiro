@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import ObjetivoForm from "@/components/forms/ObjetivoForm";
 import { useAuth } from "@/hooks/useAuth";
 
-// Mock data for demonstration purposes with user association
+// Mock data for demonstration purposes with user association and thumbnails
 const mockGoals = [
   {
     id: "1",
@@ -18,7 +18,8 @@ const mockGoals = [
     deadline: "2023-12-31",
     icon: "🛡️",
     color: "bg-blue-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9"
   },
   {
     id: "2",
@@ -28,7 +29,8 @@ const mockGoals = [
     deadline: "2024-07-31",
     icon: "✈️",
     color: "bg-purple-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1721322800607-8c38375eef04"
   },
   {
     id: "3",
@@ -38,7 +40,8 @@ const mockGoals = [
     deadline: "2023-09-30",
     icon: "💻",
     color: "bg-green-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1472396961693-142e6e269027"
   },
   {
     id: "4",
@@ -48,7 +51,8 @@ const mockGoals = [
     deadline: "2026-01-31",
     icon: "🏠",
     color: "bg-orange-500",
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17",
+    thumbnail: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d"
   }
 ];
 

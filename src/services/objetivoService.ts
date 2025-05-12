@@ -10,6 +10,7 @@ export interface Objetivo {
   icon: string;
   color: string;
   user_id: string;
+  thumbnail?: string; // Added thumbnail property
 }
 
 export class ObjetivoService extends SupabaseService<Objetivo> {
