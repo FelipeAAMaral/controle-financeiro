@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp, Plane, Check, Flag } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -114,7 +115,11 @@ const Dashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    const options = { day: '2-digit', month: '2-digit', year: 'numeric' as const };
+    const options = { 
+      day: '2-digit' as const, 
+      month: '2-digit' as const, 
+      year: 'numeric' as const 
+    };
     return new Date(dateString).toLocaleDateString('pt-BR', options);
   };
   
