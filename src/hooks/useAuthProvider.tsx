@@ -1,4 +1,3 @@
-
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -50,6 +49,7 @@ export const useAuthProvider = (): {
 
       // Set up auth state change listener
       const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        console.log("Auth state changed:", event, newSession?.user?.email);
         if (event === 'SIGNED_IN' && newSession) {
           setSession(newSession);
           setUser(formatUser(newSession.user, newSession));
@@ -69,18 +69,22 @@ export const useAuthProvider = (): {
         setLoading(true);
         setError(null);
         
+        console.log("Attempting login with:", email);
+        
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
         
         if (error) {
+          console.error("Login error:", error);
           setError(error.message);
           toast.error(error.message || "Erro ao fazer login");
           return;
         }
 
         if (data.user) {
+          console.log("Login successful for:", data.user.email);
           setUser(formatUser(data.user, data.session));
           setSession(data.session);
           toast.success("Login realizado com sucesso!");
@@ -88,6 +92,7 @@ export const useAuthProvider = (): {
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login";
+        console.error("Login exception:", errorMessage);
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -134,6 +139,10 @@ export const useAuthProvider = (): {
         setLoading(true);
         setError(null);
         
+        console.log("Attempting registration for:", email);
+        
+        // For development purposes, we'll disable email confirmation
+        // to allow immediate login after registration
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -141,22 +150,39 @@ export const useAuthProvider = (): {
             data: {
               name,
             },
+            // In development, we can skip email verification
             emailRedirectTo: `${window.location.origin}/auth/callback`
           }
         });
         
         if (error) {
+          console.error("Registration error:", error);
           setError(error.message);
           toast.error(error.message || "Erro ao fazer cadastro");
           return;
         }
 
         if (data.user) {
-          toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
-          navigate("/login");
+          console.log("Registration successful, user created:", data.user.email);
+          
+          // Check if email confirmation is required
+          if (data.session) {
+            // User is automatically signed in (email confirmation not required)
+            console.log("User session available, user signed in automatically");
+            setUser(formatUser(data.user, data.session));
+            setSession(data.session);
+            toast.success("Cadastro realizado com sucesso!");
+            navigate("/");
+          } else {
+            // Email confirmation is required
+            console.log("Email confirmation required");
+            toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
+            navigate("/login", { state: { emailConfirmationPending: true, email } });
+          }
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro ao fazer cadastro";
+        console.error("Registration exception:", errorMessage);
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {

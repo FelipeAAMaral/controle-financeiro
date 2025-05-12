@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,29 @@ import { AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
+interface LocationState {
+  emailConfirmationPending?: boolean;
+  email?: string;
+  from?: string;
+}
+
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const state = location.state as LocationState;
+  const [email, setEmail] = useState(state?.email || "");
   const [password, setPassword] = useState("");
   const [googleError, setGoogleError] = useState<string | null>(null);
   const { login, loginWithGoogle, loading, error } = useAuth();
+  const [registrationMessage, setRegistrationMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if user was redirected after registration with email confirmation pending
+    if (state?.emailConfirmationPending) {
+      setRegistrationMessage(
+        "Conta criada com sucesso! Aguarde alguns momentos e tente fazer login."
+      );
+    }
+  }, [state]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,6 +59,15 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {registrationMessage && (
+            <Alert variant="default" className="mb-6 border-green-500 bg-green-50">
+              <Info className="h-4 w-4 text-green-500" />
+              <AlertDescription className="text-green-800">
+                {registrationMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
