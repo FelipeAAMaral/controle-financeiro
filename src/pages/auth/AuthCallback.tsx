@@ -1,12 +1,13 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { fetchUserProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,16 @@ export default function AuthCallback() {
         if (data.session) {
           console.log("Auth callback successful, session obtained");
           
+          // Extrai o 'from' state do localStorage se existir
+          let redirectTo = "/";
+          const storedRedirectPath = localStorage.getItem("auth_redirect_path");
+          
+          if (storedRedirectPath) {
+            redirectTo = storedRedirectPath;
+            // Limpa o caminho de redirecionamento após uso
+            localStorage.removeItem("auth_redirect_path");
+          }
+          
           if (data.session.user) {
             try {
               await fetchUserProfile(data.session.user.id);
@@ -38,7 +49,7 @@ export default function AuthCallback() {
           }
           
           toast.success("Login realizado com sucesso!");
-          navigate("/");
+          navigate(redirectTo);
         } else {
           console.log("Auth callback processed but no session");
           navigate("/login");

@@ -128,6 +128,13 @@ export const useAuthProvider = () => {
           console.log("User signed out, clearing session and user data");
           setSession(null);
           setUser(null);
+          
+          // Limpa também o caminho de redirecionamento salvo
+          localStorage.removeItem("auth_redirect_path");
+        } else if (event === 'TOKEN_REFRESHED' && newSession) {
+          // Importante para manter a sessão ativa
+          console.log("Token refreshed, updating session");
+          setSession(newSession);
         }
       });
 
@@ -156,7 +163,15 @@ export const useAuthProvider = () => {
           setSession(data.session);
           await fetchUserProfile(authUser.id);
           toast.success("Login realizado com sucesso!");
-          navigate("/");
+          
+          // Verifica se há um caminho de redirecionamento salvo
+          const redirectTo = localStorage.getItem("auth_redirect_path") || "/";
+          navigate(redirectTo);
+          
+          // Limpa o caminho após o redirecionamento
+          if (localStorage.getItem("auth_redirect_path")) {
+            localStorage.removeItem("auth_redirect_path");
+          }
         }
       } catch (error: any) {
         console.error("Login error:", error);
@@ -173,7 +188,9 @@ export const useAuthProvider = () => {
         
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: `${window.location.origin}/auth/callback` }
+          options: { 
+            redirectTo: `${window.location.origin}/auth/callback`
+          }
         });
         
         if (error) {
@@ -251,6 +268,10 @@ export const useAuthProvider = () => {
         
         setUser(null);
         setSession(null);
+        
+        // Limpa o caminho de redirecionamento salvo
+        localStorage.removeItem("auth_redirect_path");
+        
         toast.success("Logout realizado com sucesso");
         navigate("/login");
       } catch (error: any) {

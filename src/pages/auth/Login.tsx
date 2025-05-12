@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,11 +31,26 @@ const Login = () => {
   useEffect(() => {
     console.log("Login component - checking authentication status");
     
+    // Armazena o caminho de origem para redirecionamento pós-login
+    if (state?.from) {
+      localStorage.setItem("auth_redirect_path", state.from);
+    }
+    
     // Redirect to homepage if already authenticated
     if (session && user) {
       console.log("User already authenticated, redirecting to home");
-      const redirectPath = state?.from || '/';
-      navigate(redirectPath);
+      const redirectPath = state?.from || localStorage.getItem("auth_redirect_path") || '/';
+      
+      if (redirectPath !== '/login') {
+        navigate(redirectPath);
+        
+        // Limpa o caminho após o redirecionamento
+        if (localStorage.getItem("auth_redirect_path")) {
+          localStorage.removeItem("auth_redirect_path");
+        }
+      } else {
+        navigate('/');
+      }
     }
     
     // Message after successful registration
