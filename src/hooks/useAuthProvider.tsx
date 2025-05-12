@@ -1,4 +1,3 @@
-
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -142,8 +141,7 @@ export const useAuthProvider = (): {
         
         console.log("Attempting registration for:", email);
         
-        // Configuração para desativar a confirmação de email - adicionando emailRedirectTo
-        // e autoconfirm:true para permitir login imediato
+        // Removendo o parâmetro emailConfirm que não existe na API do Supabase
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -151,9 +149,8 @@ export const useAuthProvider = (): {
             data: {
               name,
             },
-            // Desativando a verificação de email para desenvolvimento
+            // Apenas configurando o redirecionamento, sem emailConfirm
             emailRedirectTo: `${window.location.origin}/auth/callback`,
-            emailConfirm: false
           }
         });
         
