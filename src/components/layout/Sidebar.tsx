@@ -3,7 +3,8 @@ import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { 
   Home, PieChart, CalendarDays, FileText, User, LogOut,
-  BarChart, Settings, Wallet, PiggyBank, ChevronLeft, ChevronRight, Plane
+  BarChart, Settings, Wallet, PiggyBank, ChevronLeft, ChevronRight, Plane,
+  CreditCard, HeartPulse
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,28 @@ interface SidebarLinkProps {
   end?: boolean;
   collapsed?: boolean;
 }
+
+interface SectionProps {
+  title: string;
+  collapsed?: boolean;
+  children: ReactNode;
+}
+
+// Section component for organizing menu
+const MenuSection = ({ title, collapsed, children }: SectionProps) => {
+  if (collapsed) return <>{children}</>;
+  
+  return (
+    <>
+      <div className="pt-4 pb-2">
+        <p className="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+          {title}
+        </p>
+      </div>
+      {children}
+    </>
+  );
+};
 
 const SidebarLink = ({ to, icon, children, end = false, collapsed = false }: SidebarLinkProps) => (
   <NavLink
@@ -112,44 +135,38 @@ const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
               Controle Mensal
             </SidebarLink>
             
-            {open && (
-              <div className="pt-4 pb-2">
-                <p className="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Cadastros
-                </p>
-              </div>
-            )}
+            {/* Saúde Financeira Section */}
+            <MenuSection title="Saúde Financeira" collapsed={!open}>
+              <SidebarLink to="/indicadores" icon={<BarChart size={18} />} collapsed={!open}>
+                Indicadores
+              </SidebarLink>
+              <SidebarLink to="/gastos-recorrentes" icon={<CreditCard size={18} />} collapsed={!open}>
+                Gastos Recorrentes
+              </SidebarLink>
+              <SidebarLink to="/objetivos" icon={<PiggyBank size={18} />} collapsed={!open}>
+                Objetivos
+              </SidebarLink>
+              <SidebarLink to="/transacoes" icon={<Wallet size={18} />} collapsed={!open}>
+                Transações
+              </SidebarLink>
+            </MenuSection>
             
-            <SidebarLink to="/indicadores" icon={<BarChart size={18} />} collapsed={!open}>
-              Indicadores
-            </SidebarLink>
-            <SidebarLink to="/gastos-recorrentes" icon={<FileText size={18} />} collapsed={!open}>
-              Gastos Recorrentes
-            </SidebarLink>
-            <SidebarLink to="/objetivos" icon={<PiggyBank size={18} />} collapsed={!open}>
-              Objetivos
-            </SidebarLink>
-            <SidebarLink to="/transacoes" icon={<Wallet size={18} />} collapsed={!open}>
-              Transações
-            </SidebarLink>
-            <SidebarLink to="/viagens" icon={<Plane size={18} />} collapsed={!open}>
-              Viagens
-            </SidebarLink>
+            {/* Viagens Section */}
+            <MenuSection title="Viagens" collapsed={!open}>
+              <SidebarLink to="/viagens" icon={<Plane size={18} />} collapsed={!open}>
+                Todas as Viagens
+              </SidebarLink>
+            </MenuSection>
             
-            {open && (
-              <div className="pt-4 pb-2">
-                <p className="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Conta
-                </p>
-              </div>
-            )}
-            
-            <SidebarLink to="/perfil" icon={<User size={18} />} collapsed={!open}>
-              Meu Perfil
-            </SidebarLink>
-            <SidebarLink to="/configuracoes" icon={<Settings size={18} />} collapsed={!open}>
-              Configurações
-            </SidebarLink>
+            {/* Conta Section */}
+            <MenuSection title="Conta" collapsed={!open}>
+              <SidebarLink to="/perfil" icon={<User size={18} />} collapsed={!open}>
+                Meu Perfil
+              </SidebarLink>
+              <SidebarLink to="/configuracoes" icon={<Settings size={18} />} collapsed={!open}>
+                Configurações
+              </SidebarLink>
+            </MenuSection>
           </nav>
           
           <div className={cn("p-4 border-t mt-auto", !open && "flex justify-center")}>

@@ -1,22 +1,76 @@
 
 import { useState, useEffect } from "react";
-import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp, Plane, Check, Flag } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import FinancialTips from "@/components/dashboard/FinancialTips";
 import FinancialGoals from "@/components/dashboard/FinancialGoals";
 import FinancialOverview from "@/components/dashboard/FinancialOverview";
+import { useAuth } from "@/hooks/useAuth";
+
+// Mock travel data
+const mockTrips = [
+  {
+    id: "1",
+    destination: "São Paulo",
+    startDate: "2024-01-15",
+    endDate: "2024-01-20",
+    budget: "1500",
+    status: "completed", // past trip, already happened
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  },
+  {
+    id: "2",
+    destination: "Rio de Janeiro",
+    startDate: "2024-04-10", 
+    endDate: "2024-04-15",
+    budget: "2000",
+    status: "completed", // past trip, already happened
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  },
+  {
+    id: "3",
+    destination: "Florianópolis",
+    startDate: "2024-06-20",
+    endDate: "2024-06-27",
+    budget: "2500",
+    status: "planned", // future trip, not happened yet
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  },
+  {
+    id: "4",
+    destination: "Gramado",
+    startDate: "2024-08-05",
+    endDate: "2024-08-10",
+    budget: "3000",
+    status: "planned", // future trip, not happened yet
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  },
+  {
+    id: "5",
+    destination: "Natal",
+    startDate: "2024-10-15",
+    endDate: "2024-10-22",
+    budget: "4000",
+    status: "planned", // future trip, not happened yet
+    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
+  }
+];
 
 const Dashboard = () => {
   console.log("Rendering Dashboard component"); // Debug log
   
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [upcomingTrips, setUpcomingTrips] = useState([]);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [totalPatrimonio, setTotalPatrimonio] = useState(0);
 
@@ -27,9 +81,30 @@ const Dashboard = () => {
     const timer = setTimeout(() => {
       setTotalPatrimonio(22800);
     }, 500);
+
+    // Get upcoming trips (past month to next 6 months)
+    const now = new Date();
+    const oneMonthAgo = new Date(now);
+    oneMonthAgo.setMonth(now.getMonth() - 1);
+    
+    const sixMonthsFromNow = new Date(now);
+    sixMonthsFromNow.setMonth(now.getMonth() + 6);
+    
+    // Filter trips by date range and user_id
+    const filteredTrips = mockTrips.filter(trip => {
+      const tripDate = new Date(trip.startDate);
+      return tripDate >= oneMonthAgo && 
+             tripDate <= sixMonthsFromNow && 
+             trip.user_id === user?.id;
+    });
+
+    // Sort trips by start date
+    filteredTrips.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    
+    setUpcomingTrips(filteredTrips);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
   const capitalizedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
@@ -37,6 +112,17 @@ const Dashboard = () => {
   // Funções para navegação
   const navigateTo = (path: string) => {
     navigate(path);
+  };
+
+  const formatDate = (dateString) => {
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('pt-BR', options);
+  };
+  
+  const isTripPassed = (endDate) => {
+    const now = new Date();
+    const tripEndDate = new Date(endDate);
+    return tripEndDate < now;
   };
 
   return (
@@ -74,7 +160,7 @@ const Dashboard = () => {
             </p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/investimentos')}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/indicadores')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Indicador de Investimentos</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -135,7 +221,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="animated-card cursor-pointer" onClick={() => navigateTo('/investimentos')}>
+        <Card className="animated-card cursor-pointer" onClick={() => navigateTo('/indicadores')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Investimentos</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-500" />
@@ -149,6 +235,63 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Upcoming trips section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Próximas Viagens</h2>
+          <Button variant="outline" size="sm" onClick={() => navigateTo('/viagens')}>
+            Ver todas
+          </Button>
+        </div>
+
+        {upcomingTrips.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <Plane className="h-12 w-12 text-gray-300 mb-2" />
+              <p className="text-muted-foreground">Nenhuma viagem planejada para os próximos meses</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => navigateTo('/viagens')}>
+                Planejar viagem
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {upcomingTrips.map((trip) => (
+              <Card key={trip.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigateTo(`/viagens/${trip.id}`)}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">{trip.destination}</CardTitle>
+                    {isTripPassed(trip.endDate) ? (
+                      <Badge variant="outline" className="flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-100">
+                        <Check className="h-3 w-3" /> Realizada
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="flex items-center gap-1 bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        <Flag className="h-3 w-3" /> Planejada
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Data</span>
+                      <span className="text-sm">{formatDate(trip.startDate)} - {formatDate(trip.endDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Orçamento</span>
+                      <span className="text-sm font-medium">
+                        R$ {parseFloat(trip.budget).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">

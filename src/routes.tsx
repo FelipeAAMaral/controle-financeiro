@@ -19,6 +19,7 @@ import EditarObjetivo from "./pages/EditarObjetivo";
 import Transacoes from "./pages/Transacoes";
 import Viagens from "./pages/Viagens";
 import Configuracoes from "./pages/Configuracoes";
+import SaudeFin from "./pages/SaudeFin";
 
 // Add a loading component to use with lazy loading
 const LoadingFallback = () => (
@@ -117,6 +118,14 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <MainLayout>
             <Viagens />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/saude-financeira" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <SaudeFin />
           </MainLayout>
         </ProtectedRoute>
       } />
