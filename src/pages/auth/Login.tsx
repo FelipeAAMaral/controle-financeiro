@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const { login, loginWithGoogle, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -21,7 +22,13 @@ const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
-    await loginWithGoogle();
+    try {
+      setGoogleError(null);
+      await loginWithGoogle();
+    } catch (err) {
+      setGoogleError("Falha na autenticação com Google. Verifique se o provedor está ativado no Supabase.");
+      console.error("Google login error:", err);
+    }
   };
 
   return (
@@ -38,6 +45,18 @@ const Login = () => {
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {googleError && (
+            <Alert variant="warning" className="mb-6">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                {googleError}
+                <div className="mt-2 text-xs">
+                  Para habilitar o login com Google, acesse o painel do Supabase, navegue até Authentication {'>'} Providers e ative o Google.
+                </div>
+              </AlertDescription>
             </Alert>
           )}
           

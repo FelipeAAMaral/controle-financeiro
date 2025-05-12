@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
@@ -136,13 +136,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (error) {
+        console.error("Google login error:", error);
         setError(error.message);
         toast.error(error.message || "Erro ao fazer login com Google");
+        
+        // Re-throw the error so the component can handle it specifically
+        throw error;
       }
+      
+      // No need to set user/session here as the redirect will happen
+      // and the auth state change listener will handle it
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login com Google";
       setError(errorMessage);
       toast.error(errorMessage);
+      throw error; // Re-throw to allow component-level handling
     } finally {
       setLoading(false);
     }
