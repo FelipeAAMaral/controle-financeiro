@@ -1,3 +1,4 @@
+
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -81,6 +82,8 @@ export const useAuthProvider = () => {
       const setupSession = async () => {
         try {
           console.log("Setting up session...");
+          setLoading(true);
+          
           // Get current session
           const { data, error } = await supabase.auth.getSession();
           
@@ -115,9 +118,10 @@ export const useAuthProvider = () => {
 
       // Set up auth state change listener
       const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-        console.log("Auth state changed:", event);
+        console.log("Auth state changed:", event, newSession ? "with session" : "no session");
         
         if (event === 'SIGNED_IN' && newSession) {
+          console.log("SIGNED_IN event detected, updating user state");
           setSession(newSession);
           const authUser = formatUser(newSession.user, newSession);
           setUser(authUser);
@@ -135,13 +139,16 @@ export const useAuthProvider = () => {
           // Importante para manter a sessão ativa
           console.log("Token refreshed, updating session");
           setSession(newSession);
+          // Re-verify user on token refresh to ensure data is current
+          const authUser = formatUser(newSession.user, newSession);
+          setUser(authUser);
         }
       });
 
       return () => {
         data.subscription.unsubscribe();
       };
-    }, [navigate]);
+    }, []);
 
     // Basic auth methods
     const login = async (email: string, password: string) => {

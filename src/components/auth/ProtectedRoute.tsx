@@ -2,7 +2,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 interface ProtectedRouteProps {
@@ -12,9 +12,17 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading, session } = useAuth();
   const location = useLocation();
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [hasCheckedTokens, setHasCheckedTokens] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
+      console.log("ProtectedRoute - Checking session status", { 
+        hasUser: !!user, 
+        hasSession: !!session, 
+        path: location.pathname 
+      });
+      
       // Verifica se há um token na URL (para casos de redirecionamento após autenticação externa)
       const params = new URLSearchParams(location.search);
       const accessToken = params.get('access_token');
@@ -34,23 +42,39 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           } else {
             // Remove os tokens da URL por segurança
             window.history.replaceState({}, document.title, location.pathname);
+            
+            // Força um recarregamento da sessão para atualizar o contexto de autenticação
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+              console.log("ProtectedRoute - Sessão atualizada com sucesso após token na URL");
+            }
           }
         } catch (err) {
           console.error("Erro ao processar tokens:", err);
         }
       }
+      
+      setHasCheckedTokens(true);
     };
     
-    if (!loading && !user) {
-      checkSession();
-    }
-  }, [location, loading, user]);
+    checkSession();
+  }, [location, user, session]);
+
+  // Combine loading states
+  const isLoading = loading || (!hasCheckedTokens && !user);
 
   // Add debug logs
-  console.log("ProtectedRoute - Auth state:", { user, loading, session, path: location.pathname });
+  console.log("ProtectedRoute - Current state:", { 
+    user: !!user, 
+    loading, 
+    session: !!session, 
+    isCheckingSession, 
+    hasCheckedTokens,
+    path: location.pathname 
+  });
 
   // Show a loading state while checking authentication
-  if (loading) {
+  if (isLoading) {
     console.log("ProtectedRoute - Loading auth state");
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
@@ -70,6 +94,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Redirect to login if user is not authenticated
   if (!session || !user) {
     console.log("ProtectedRoute - Not authenticated, redirecting to login");
+    // Save current path for redirect after login
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

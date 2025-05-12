@@ -10,11 +10,35 @@ export default function AuthCallback() {
   const location = useLocation();
   const { fetchUserProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
         console.log("Auth callback processing");
+        setProcessing(true);
+        
+        // Check for hash params (used by some OAuth providers)
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        // If tokens are in the hash, set them
+        if (accessToken && refreshToken) {
+          console.log("Auth callback - tokens found in hash, setting session");
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error("Error setting session from hash:", error);
+            throw error;
+          }
+          
+          // Clear hash for security
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
         
         // Get current session
         const { data, error } = await supabase.auth.getSession();
@@ -36,6 +60,7 @@ export default function AuthCallback() {
           
           if (storedRedirectPath) {
             redirectTo = storedRedirectPath;
+            console.log("Redirecting to saved path:", redirectTo);
             // Limpa o caminho de redirecionamento após uso
             localStorage.removeItem("auth_redirect_path");
           }
@@ -59,18 +84,22 @@ export default function AuthCallback() {
         setError("Ocorreu um erro inesperado");
         toast.error("Ocorreu um erro inesperado. Por favor, tente novamente.");
         navigate("/login");
+      } finally {
+        setProcessing(false);
       }
     };
 
     handleAuthCallback();
-  }, [navigate, fetchUserProfile]);
+  }, [navigate, fetchUserProfile, location.hash]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-4">Autenticando...</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        {processing && (
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        )}
       </div>
     </div>
   );
