@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,9 +22,13 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { investimentosService } from "@/services/investimentosService";
+import { InvestimentosService } from "@/services/investimentosService";
 import { toast } from "sonner";
-import { Investimento, MarketData } from "@/types/investimentos";
+import { Investimento, MarketData } from "@/types";
+import { Plus, TrendingUp, LineChart, Shield, Globe, Coins } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const investimentosService = new InvestimentosService();
 
 // Helper function para formatar valores monetários
 function formatCurrency(value: number, currency = "BRL") {
@@ -39,38 +42,181 @@ function formatCurrency(value: number, currency = "BRL") {
 // Cores para o gráfico de pizza
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
+const features = [
+  {
+    icon: <TrendingUp className="h-8 w-8" />,
+    title: "Acompanhamento em Tempo Real",
+    description: "Monitore o desempenho dos seus investimentos com atualizações em tempo real e gráficos interativos."
+  },
+  {
+    icon: <PieChart className="h-8 w-8" />,
+    title: "Análise de Carteira",
+    description: "Visualize a distribuição dos seus investimentos por categoria e mantenha uma carteira diversificada."
+  },
+  {
+    icon: <LineChart className="h-8 w-8" />,
+    title: "Evolução Patrimonial",
+    description: "Acompanhe a evolução do seu patrimônio ao longo do tempo com gráficos detalhados."
+  },
+  {
+    icon: <Shield className="h-8 w-8" />,
+    title: "Renda Fixa",
+    description: "Gerencie seus investimentos em renda fixa, incluindo CDBs, LCIs, LCAs e títulos públicos."
+  },
+  {
+    icon: <Globe className="h-8 w-8" />,
+    title: "Investimentos Internacionais",
+    description: "Acompanhe seus investimentos no exterior com suporte a múltiplas moedas."
+  },
+  {
+    icon: <Coins className="h-8 w-8" />,
+    title: "Criptomoedas",
+    description: "Monitore suas criptomoedas e tokens com atualizações de preço em tempo real."
+  }
+];
+
 const InvestimentosDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [filter, setFilter] = useState("all");
   const [investimentos, setInvestimentos] = useState<Investimento[]>([]);
   const [marketData, setMarketData] = useState<MarketData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const investimentosData = await investimentosService.getInvestimentos(user.id);
+      setInvestimentos(investimentosData);
 
-      setIsLoading(true);
-      try {
-        // Fetch investments from database
-        const invData = await investimentosService.getInvestimentos(user.id);
-        setInvestimentos(invData);
-
-        // Fetch market data from database
-        const mktData = await investimentosService.getMarketData();
-        setMarketData(mktData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Erro ao carregar dados de investimentos");
-      } finally {
-        setIsLoading(false);
+      // Só busca dados de mercado se houver investimentos
+      if (investimentosData.length > 0) {
+        const marketData = await investimentosService.getMarketData();
+        setMarketData(marketData);
       }
-    };
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar dados dos investimentos');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Meus Investimentos</h1>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Mostra a landing page se não houver investimentos
+  if (investimentos.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+        <div className="container mx-auto px-4 py-12">
+          {/* Hero Section */}
+          <div className="text-center mb-16">
+            <h1 className="text-4xl font-bold tracking-tight mb-4">
+              Bem-vindo ao seu Centro de Investimentos
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Gerencie seus investimentos de forma inteligente, acompanhe o desempenho da sua carteira e tome decisões baseadas em dados.
+            </p>
+            <Button size="lg" onClick={() => navigate('/investimentos/novo')}>
+              <Plus className="mr-2 h-5 w-5" />
+              Começar Agora
+            </Button>
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {features.map((feature, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mb-4 text-primary">
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Getting Started Section */}
+          <div className="bg-card rounded-lg p-8 shadow-lg">
+            <h2 className="text-2xl font-bold mb-6 text-center">Como Começar</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-xl font-bold">1</span>
+                </div>
+                <h3 className="font-semibold mb-2">Cadastre seus Investimentos</h3>
+                <p className="text-muted-foreground">
+                  Adicione seus investimentos atuais, incluindo valor, data de compra e rentabilidade.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-xl font-bold">2</span>
+                </div>
+                <h3 className="font-semibold mb-2">Monitore o Desempenho</h3>
+                <p className="text-muted-foreground">
+                  Acompanhe a evolução dos seus investimentos com gráficos e análises detalhadas.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-xl font-bold">3</span>
+                </div>
+                <h3 className="font-semibold mb-2">Tome Decisões Informadas</h3>
+                <p className="text-muted-foreground">
+                  Use os insights fornecidos para otimizar sua carteira e alcançar seus objetivos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="text-center mt-16">
+            <h2 className="text-2xl font-bold mb-4">Pronto para começar?</h2>
+            <p className="text-muted-foreground mb-8">
+              Cadastre seu primeiro investimento e comece a acompanhar seu patrimônio.
+            </p>
+            <Button size="lg" onClick={() => navigate('/investimentos/novo')}>
+              <Plus className="mr-2 h-5 w-5" />
+              Cadastrar Primeiro Investimento
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredInvestimentos = investimentos.filter(inv => {
     if (filter === "all") return true;
@@ -150,29 +296,14 @@ const InvestimentosDashboard = () => {
           </p>
         </div>
         <Button onClick={() => navigate("/novo-investimento")}>
+          <Plus className="mr-2 h-4 w-4" />
           Novo Investimento
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-7 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-4">
-          {renderMarketCards()}
-        </div>
-      )}
+      <div className="grid gap-4 md:grid-cols-4">
+        {renderMarketCards()}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">

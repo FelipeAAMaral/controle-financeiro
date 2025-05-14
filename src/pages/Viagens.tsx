@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,206 +18,16 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
-
-// Mock data
-const mockViagens: Viagem[] = [
-  {
-    id: "1",
-    nome: "Férias em Portugal",
-    startDate: "2023-12-15",
-    endDate: "2024-01-05",
-    objetivo: "2", // ID do objetivo relacionado a viagem
-    destinos: [
-      {
-        id: "d1",
-        cidade: "Lisboa",
-        pais: "Portugal",
-        dataChegada: "2023-12-15",
-        dataPartida: "2023-12-22",
-        hospedagem: "Airbnb no centro de Lisboa",
-      },
-      {
-        id: "d2",
-        cidade: "Porto",
-        pais: "Portugal",
-        dataChegada: "2023-12-22",
-        dataPartida: "2023-12-29",
-        hospedagem: "Hotel Ribeira",
-      },
-      {
-        id: "d3",
-        cidade: "Faro",
-        pais: "Portugal",
-        dataChegada: "2023-12-29",
-        dataPartida: "2024-01-05",
-        hospedagem: "Pousada na praia",
-      }
-    ],
-    budget: 15000
-  },
-  {
-    id: "2",
-    nome: "Intercâmbio na Espanha",
-    startDate: "2024-03-10",
-    endDate: "2024-05-20",
-    objetivo: "3",
-    destinos: [
-      {
-        id: "d4",
-        cidade: "Barcelona",
-        pais: "Espanha",
-        dataChegada: "2024-03-10",
-        dataPartida: "2024-05-20",
-        hospedagem: "Apartamento estudantil",
-      }
-    ],
-    budget: 20000
-  }
-];
-
-// Mock flight data
-const mockVoos = [
-  {
-    id: "v1",
-    viagemId: "1",
-    origem: "São Paulo",
-    codigoOrigem: "GRU",
-    destino: "Lisboa",
-    codigoDestino: "LIS",
-    data: "2023-12-15",
-    horarioPartida: "23:45",
-    horarioChegada: "12:15",
-    companhia: "TAP",
-    numeroVoo: "TP8152",
-    terminal: "3",
-    portao: "38",
-    status: "Confirmado",
-    duracao: "9h 30m",
-    escalas: []
-  },
-  {
-    id: "v2",
-    viagemId: "1",
-    origem: "Lisboa",
-    codigoOrigem: "LIS",
-    destino: "Porto",
-    codigoDestino: "OPO",
-    data: "2023-12-22",
-    horarioPartida: "10:30",
-    horarioChegada: "11:30",
-    companhia: "TAP",
-    numeroVoo: "TP1320",
-    terminal: "1",
-    portao: "15",
-    status: "Confirmado",
-    duracao: "1h 00m",
-    escalas: []
-  },
-  {
-    id: "v3",
-    viagemId: "1",
-    origem: "Porto",
-    codigoOrigem: "OPO",
-    destino: "Faro",
-    codigoDestino: "FAO",
-    data: "2023-12-29",
-    horarioPartida: "14:15",
-    horarioChegada: "15:30",
-    companhia: "Ryanair",
-    numeroVoo: "FR5483",
-    terminal: "1",
-    portao: "8",
-    status: "Confirmado",
-    duracao: "1h 15m",
-    escalas: []
-  },
-  {
-    id: "v4",
-    viagemId: "1",
-    origem: "Faro",
-    codigoOrigem: "FAO",
-    destino: "São Paulo",
-    codigoDestino: "GRU",
-    data: "2024-01-05",
-    horarioPartida: "15:45",
-    horarioChegada: "00:30",
-    companhia: "TAP",
-    numeroVoo: "TP8153",
-    terminal: "1",
-    portao: "12",
-    status: "Confirmado",
-    duracao: "10h 45m",
-    escalas: [
-      {
-        aeroporto: "Lisboa",
-        codigo: "LIS",
-        chegada: "16:30",
-        partida: "18:00",
-        terminal: "1",
-        portao: "22"
-      }
-    ]
-  },
-  {
-    id: "v5",
-    viagemId: "2",
-    origem: "São Paulo",
-    codigoOrigem: "GRU",
-    destino: "Barcelona",
-    codigoDestino: "BCN",
-    data: "2024-03-10",
-    horarioPartida: "18:30",
-    horarioChegada: "09:45",
-    companhia: "Iberia",
-    numeroVoo: "IB6824",
-    terminal: "3",
-    portao: "24",
-    status: "Confirmado",
-    duracao: "11h 15m",
-    escalas: [
-      {
-        aeroporto: "Madrid",
-        codigo: "MAD",
-        chegada: "06:00",
-        partida: "07:30",
-        terminal: "4",
-        portao: "H5"
-      }
-    ]
-  },
-  {
-    id: "v6",
-    viagemId: "2",
-    origem: "Barcelona",
-    codigoOrigem: "BCN",
-    destino: "São Paulo",
-    codigoDestino: "GRU",
-    data: "2024-05-20",
-    horarioPartida: "12:20",
-    horarioChegada: "19:10",
-    companhia: "Iberia",
-    numeroVoo: "IB6825",
-    terminal: "1",
-    portao: "18",
-    status: "Confirmado",
-    duracao: "12h 50m",
-    escalas: [
-      {
-        aeroporto: "Madrid",
-        codigo: "MAD",
-        chegada: "13:35",
-        partida: "15:45",
-        terminal: "4",
-        portao: "J58"
-      }
-    ]
-  }
-];
+import { ViagensService } from "@/services/viagensService";
+import { useAuth } from "@/hooks/useAuth";
+import { DollarSign } from "lucide-react";
 
 const Viagens = () => {
   const navigate = useNavigate();
-  const [viagens] = useState<Viagem[]>(mockViagens);
-  const [voos, setVoos] = useState(mockVoos);
+  const { user } = useAuth();
+  const [viagens, setViagens] = useState<Viagem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [voos, setVoos] = useState([]);
   const [activeTab, setActiveTab] = useState("todas");
   const [visualizacao, setVisualizacao] = useState<"lista" | "voos">("lista");
   const [isImportFormOpen, setIsImportFormOpen] = useState(false);
@@ -227,6 +36,26 @@ const Viagens = () => {
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4; // Número de voos por página
+
+  useEffect(() => {
+    const loadViagens = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const viagensService = new ViagensService();
+        const data = await viagensService.getViagens(user.id);
+        setViagens(data);
+      } catch (error) {
+        console.error('Erro ao carregar viagens:', error);
+        toast.error('Erro ao carregar viagens');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadViagens();
+  }, [user]);
 
   useEffect(() => {
     // Iniciar o polling para verificação automática das reservas
@@ -320,6 +149,30 @@ const Viagens = () => {
   const indexOfFirstVoo = indexOfLastVoo - itemsPerPage;
   const currentVoos = voosFiltrados.slice(indexOfFirstVoo, indexOfLastVoo);
 
+  const getStatusBadge = (viagem: Viagem) => {
+    const hoje = new Date();
+    const dataInicio = new Date(viagem.startDate);
+    const dataFim = new Date(viagem.endDate);
+
+    if (dataInicio > hoje) {
+      return <Badge variant="outline">Futura</Badge>;
+    } else if (dataInicio <= hoje && dataFim >= hoje) {
+      return <Badge>Em andamento</Badge>;
+    } else {
+      return <Badge variant="secondary">Passada</Badge>;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <p>Carregando viagens...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -401,15 +254,7 @@ const Viagens = () => {
                     <CardHeader className="pb-2">
                       <div className="flex justify-between">
                         <CardTitle className="text-lg">{viagem.nome}</CardTitle>
-                        <Badge variant={
-                          new Date(viagem.startDate) > new Date() ? "outline" :
-                          (new Date(viagem.startDate) <= new Date() && new Date(viagem.endDate) >= new Date()) ? "default" :
-                          "secondary"
-                        }>
-                          {new Date(viagem.startDate) > new Date() ? "Futura" :
-                          (new Date(viagem.startDate) <= new Date() && new Date(viagem.endDate) >= new Date()) ? "Em andamento" :
-                          "Passada"}
-                        </Badge>
+                        {getStatusBadge(viagem)}
                       </div>
                       <CardDescription className="flex items-center mt-1">
                         <CalendarDays className="h-4 w-4 mr-1" />

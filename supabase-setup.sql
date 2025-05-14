@@ -1,4 +1,3 @@
-
 -- Tabelas iniciais para o app de finanças
 -- Execute este script no console SQL do Supabase
 
@@ -368,3 +367,173 @@ VALUES
   ('EUR', 'Euro', 5.67),
   ('GBP', 'Libra Esterlina', 6.72),
   ('JPY', 'Iene Japonês', 0.048);
+
+-- Trigger para criar perfil automaticamente quando um novo usuário é registrado
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, created_at, updated_at)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+    NOW(),
+    NOW()
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Criar o trigger
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Adicionar restrições de chave estrangeira para garantir que todos os registros tenham um perfil associado
+ALTER TABLE transactions
+  ADD CONSTRAINT fk_transactions_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE recurring_expenses
+  ADD CONSTRAINT fk_recurring_expenses_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE goals
+  ADD CONSTRAINT fk_goals_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE trips
+  ADD CONSTRAINT fk_trips_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE destinations
+  ADD CONSTRAINT fk_destinations_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE investments
+  ADD CONSTRAINT fk_investments_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+ALTER TABLE trip_expense_plans
+  ADD CONSTRAINT fk_trip_expense_plans_profile
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;
+
+-- Política para garantir que apenas usuários com perfil possam acessar as tabelas
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON transactions FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON recurring_expenses FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON goals FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON trips FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON destinations FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON investments FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Apenas usuários com perfil podem acessar as tabelas"
+  ON trip_expense_plans FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+    )
+  );

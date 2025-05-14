@@ -1,4 +1,3 @@
-
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -193,22 +192,31 @@ export const useAuthProvider = () => {
         setLoading(true);
         setError(null);
         
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: { 
-            redirectTo: `${window.location.origin}/auth/callback`
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
           }
         });
-        
+
         if (error) {
+          console.error("Google login error:", error);
           setError(error.message);
-          toast.error(error.message || "Erro ao fazer login com Google");
+          toast.error("Erro ao fazer login com Google");
+          throw error;
         }
+
+        // O redirecionamento será feito automaticamente pelo Supabase
+        // Não precisamos fazer nada aqui, pois o callback será tratado em AuthCallback.tsx
+
       } catch (error: any) {
         console.error("Google login error:", error);
-        const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login com Google";
-        setError(errorMessage);
-        toast.error(errorMessage);
+        setError(error.message || "Erro ao fazer login com Google");
+        toast.error("Erro ao fazer login com Google");
       } finally {
         setLoading(false);
       }

@@ -13,67 +13,30 @@ import FinancialGoals from "@/components/dashboard/FinancialGoals";
 import FinancialOverview from "@/components/dashboard/FinancialOverview";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
-
-// Mock travel data
-const mockTrips = [
-  {
-    id: "1",
-    destination: "São Paulo",
-    startDate: "2024-01-15",
-    endDate: "2024-01-20",
-    budget: "1500",
-    status: "completed", // past trip, already happened
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
-  },
-  {
-    id: "2",
-    destination: "Rio de Janeiro",
-    startDate: "2024-04-10", 
-    endDate: "2024-04-15",
-    budget: "2000",
-    status: "completed", // past trip, already happened
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
-  },
-  {
-    id: "3",
-    destination: "Florianópolis",
-    startDate: "2024-06-20",
-    endDate: "2024-06-27",
-    budget: "2500",
-    status: "planned", // future trip, not happened yet
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
-  },
-  {
-    id: "4",
-    destination: "Gramado",
-    startDate: "2024-08-05",
-    endDate: "2024-08-10",
-    budget: "3000",
-    status: "planned", // future trip, not happened yet
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
-  },
-  {
-    id: "5",
-    destination: "Natal",
-    startDate: "2024-10-15",
-    endDate: "2024-10-22",
-    budget: "4000",
-    status: "planned", // future trip, not happened yet
-    user_id: "8b55fd41-e80c-4155-8d5a-730603654e17" // ID do usuário amaral.felipeaugusto@gmail.com
-  }
-];
+import { DashboardService } from "@/services/dashboardService";
+import type { FinancialOverview as DashboardFinancialOverview } from "@/services/dashboardService";
+import { ViagensService, Viagem } from '@/services/viagensService';
+import { Transacao } from '@/types';
+import { toast } from 'sonner';
+import { Plus } from "lucide-react";
 
 const Dashboard = () => {
   console.log("Rendering Dashboard component"); // Debug log
   
   const [selectedTab, setSelectedTab] = useState("overview");
-  const [upcomingTrips, setUpcomingTrips] = useState([]);
+  const [upcomingTrips, setUpcomingTrips] = useState<Viagem[]>([]);
   const [databaseInitialized, setDatabaseInitialized] = useState<boolean | null>(null);
-  const { toast } = useToast();
+  const { toast: toastNotification } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [totalPatrimonio, setTotalPatrimonio] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [financialOverview, setFinancialOverview] = useState<DashboardFinancialOverview | null>(null);
+  const [recentTransactions, setRecentTransactions] = useState<Transacao[]>([]);
+  const [monthlyEvolution, setMonthlyEvolution] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
     console.log("Dashboard useEffect running"); // Debug log
@@ -100,28 +63,62 @@ const Dashboard = () => {
       setTotalPatrimonio(22800);
     }, 500);
 
-    // Get upcoming trips (past month to next 6 months)
-    const now = new Date();
-    const oneMonthAgo = new Date(now);
-    oneMonthAgo.setMonth(now.getMonth() - 1);
-    
-    const sixMonthsFromNow = new Date(now);
-    sixMonthsFromNow.setMonth(now.getMonth() + 6);
-    
-    // Filter trips by date range and user_id
-    const filteredTrips = mockTrips.filter(trip => {
-      const tripDate = new Date(trip.startDate);
-      return tripDate >= oneMonthAgo && 
-             tripDate <= sixMonthsFromNow && 
-             trip.user_id === user?.id;
-    });
+    // Get upcoming trips
+    const loadTrips = async () => {
+      if (!user) return;
 
-    // Sort trips by start date
-    filteredTrips.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-    
-    setUpcomingTrips(filteredTrips);
+      try {
+        const viagensService = new ViagensService();
+        const trips = await viagensService.getUpcomingTrips(user.id);
+        setUpcomingTrips(trips);
+      } catch (error) {
+        console.error('Erro ao carregar viagens:', error);
+        toast.error('Erro ao carregar viagens');
+      }
+    };
+
+    loadTrips();
     
     return () => clearTimeout(timer);
+  }, [user]);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoading(true);
+        const dashboardService = new DashboardService();
+        const [overview, transactions, evolution] = await Promise.all([
+          dashboardService.getFinancialOverview(user.id),
+          dashboardService.getRecentTransactions(user.id),
+          dashboardService.getMonthlyEvolution(user.id)
+        ]);
+
+        setFinancialOverview(overview);
+        setRecentTransactions(transactions.map(t => ({
+          id: t.id,
+          description: t.description,
+          date: t.date,
+          amount: t.amount,
+          type: t.type,
+          category: t.category,
+          account: t.account || 'Nubank',
+          user_id: t.user_id
+        })));
+        setMonthlyEvolution(evolution);
+        
+        // Check if we have any data
+        setHasData(transactions.length > 0 || overview.totalEntradas > 0 || overview.totalSaidas > 0);
+      } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+        toast.error('Erro ao carregar dados do dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
   }, [user]);
 
   const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
@@ -147,221 +144,215 @@ const Dashboard = () => {
     return tripEndDate < now;
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Bem-vindo ao seu Dashboard Financeiro!</h1>
+          <p className="text-gray-600 mb-8">
+            Parece que você ainda não tem nenhuma transação registrada. Comece agora mesmo a controlar suas finanças!
+          </p>
+          <Button
+            onClick={() => navigate("/transacoes/nova")}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar Primeira Transação
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+
       {databaseInitialized === false && (
         <Card className="border-amber-300 bg-amber-50">
           <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-amber-600" />
               <p className="text-amber-800">
-                É necessário configurar o banco de dados para continuar usando o aplicativo.
+                O banco de dados ainda não foi inicializado. Por favor, acesse a página de configurações para inicializar.
               </p>
             </div>
-            <Button 
-              size="sm" 
-              variant="default"
-              onClick={() => navigate('/database-setup')}
+            <Button
+              variant="outline"
+              className="border-amber-300 hover:bg-amber-100"
+              onClick={() => navigateTo("/configuracoes")}
             >
-              Configurar Banco
+              Configurações
             </Button>
           </CardContent>
         </Card>
       )}
-      
-      {/* Cards de Saúde Financeira */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 4.200,00</div>
-            <p className="text-xs text-muted-foreground">
-              +20% em relação ao mês passado
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/controle-mensal')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Economia Mensal</CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 1.200,00</div>
-            <p className="text-xs text-muted-foreground">
-              +12% em relação ao mês passado
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/indicadores')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Indicador de Investimentos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">28%</div>
-            <p className="text-xs text-muted-foreground">
-              Percentual da renda investida
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Cards principais do Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="animated-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
-            <Wallet className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 5.240,80</div>
-            <p className="text-xs text-gray-500">Atualizado hoje às 10:45</p>
-            <div className="mt-2 flex items-center">
-              <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-xs text-green-500">+12% do mês anterior</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="animated-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total de Entradas</CardTitle>
-            <ArrowUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">R$ 7.350,00</div>
-            <p className="text-xs text-gray-500">{capitalizedMonth}, 2023</p>
-            <div className="mt-2 flex items-center">
-              <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-xs text-green-500">+5% do mês anterior</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="animated-card cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigateTo('/transacoes')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total de Saídas</CardTitle>
-            <ArrowDown className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">R$ 2.109,20</div>
-            <p className="text-xs text-gray-500">{capitalizedMonth}, 2023</p>
-            <div className="mt-2 flex items-center">
-              <ArrowDown className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-xs text-green-500">-8% do mês anterior</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="animated-card cursor-pointer" onClick={() => navigateTo('/indicadores')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Investimentos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ {new Intl.NumberFormat('pt-BR').format(totalPatrimonio)}</div>
-            <p className="text-xs text-gray-500">Patrimônio total</p>
-            <div className="mt-2 flex items-center">
-              <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-xs text-green-500">+15% acumulado</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upcoming trips section */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold">Próximas Viagens</h2>
-          <Button variant="outline" size="sm" onClick={() => navigateTo('/viagens')}>
-            Ver todas
-          </Button>
-        </div>
-
-        {upcomingTrips.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <Plane className="h-12 w-12 text-gray-300 mb-2" />
-              <p className="text-muted-foreground">Nenhuma viagem planejada para os próximos meses</p>
-              <Button variant="outline" size="sm" className="mt-4" onClick={() => navigateTo('/viagens')}>
-                Planejar viagem
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {upcomingTrips.map((trip) => (
-              <Card key={trip.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigateTo(`/viagens/${trip.id}`)}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">{trip.destination}</CardTitle>
-                    {isTripPassed(trip.endDate) ? (
-                      <Badge variant="outline" className="flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-100">
-                        <Check className="h-3 w-3" /> Realizada
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="flex items-center gap-1 bg-blue-100 text-blue-800 hover:bg-blue-100">
-                        <Flag className="h-3 w-3" /> Planejada
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Data</span>
-                      <span className="text-sm">{formatDate(trip.startDate)} - {formatDate(trip.endDate)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Orçamento</span>
-                      <span className="text-sm font-medium">
-                        R$ {parseFloat(trip.budget).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-4">
-          <TabsTrigger value="overview">
-            <PieChart className="h-4 w-4 mr-2" />
-            Visão Geral
-          </TabsTrigger>
-          <TabsTrigger value="transactions">
-            <Wallet className="h-4 w-4 mr-2" />
-            Transações
-          </TabsTrigger>
-          <TabsTrigger value="goals">
-            <PiggyBank className="h-4 w-4 mr-2" />
-            Objetivos
-          </TabsTrigger>
-          <TabsTrigger value="tips">
-            <BarChart className="h-4 w-4 mr-2" />
-            Dicas
-          </TabsTrigger>
+      <Tabs defaultValue="overview" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="transactions">Transações</TabsTrigger>
+          <TabsTrigger value="goals">Objetivos</TabsTrigger>
+          <TabsTrigger value="tips">Dicas</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="overview" className="space-y-4">
-          <FinancialOverview />
+
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  Saldo Atual
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-green-600">
+                  R$ {financialOverview?.saldoAtual?.toFixed(2) || '0.00'}
+                </p>
+                <p className={`text-sm mt-2 ${financialOverview?.variacaoEntradas >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {financialOverview?.variacaoEntradas >= 0 ? '+' : ''}{financialOverview?.variacaoEntradas?.toFixed(1) || '0.0'}% vs mês anterior
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowUp className="h-5 w-5 text-green-600" />
+                  Entradas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-green-600">
+                  R$ {financialOverview?.totalEntradas?.toFixed(2) || '0.00'}
+                </p>
+                <p className={`text-sm mt-2 ${financialOverview?.variacaoEntradas >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {financialOverview?.variacaoEntradas >= 0 ? '+' : ''}{financialOverview?.variacaoEntradas?.toFixed(1) || '0.0'}% vs mês anterior
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowDown className="h-5 w-5 text-red-600" />
+                  Saídas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-red-600">
+                  R$ {financialOverview?.totalSaidas?.toFixed(2) || '0.00'}
+                </p>
+                <p className={`text-sm mt-2 ${financialOverview?.variacaoSaidas <= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {financialOverview?.variacaoSaidas >= 0 ? '+' : ''}{financialOverview?.variacaoSaidas?.toFixed(1) || '0.0'}% vs mês anterior
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plane className="h-5 w-5" />
+                  Próximas Viagens
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {upcomingTrips.length === 0 ? (
+                  <p className="text-gray-500">Nenhuma viagem planejada</p>
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingTrips.map((trip) => (
+                      <div key={trip.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <h3 className="font-semibold">{trip.destination}</h3>
+                          <p className="text-sm text-gray-600">
+                            {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={trip.status === 'completed' ? 'default' : 'secondary'}>
+                            {trip.status === 'completed' ? 'Concluída' : 'Planejada'}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigateTo(`/viagens/${trip.id}`)}
+                          >
+                            Detalhes
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigateTo("/viagens")}
+                >
+                  Ver todas as viagens
+                </Button>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PiggyBank className="h-5 w-5" />
+                  Patrimônio Total
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">R$ {totalPatrimonio.toFixed(2)}</p>
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Investimentos</span>
+                    <span>R$ 15.000,00</span>
+                  </div>
+                  <Progress value={65} className="h-2" />
+                </div>
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Poupança</span>
+                    <span>R$ 7.800,00</span>
+                  </div>
+                  <Progress value={35} className="h-2" />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigateTo("/investimentos")}
+                >
+                  Ver detalhes
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         </TabsContent>
-        
-        <TabsContent value="transactions" className="space-y-4">
-          <RecentTransactions />
+
+        <TabsContent value="transactions">
+          <RecentTransactions transactions={recentTransactions} />
         </TabsContent>
-        
-        <TabsContent value="goals" className="space-y-4">
+
+        <TabsContent value="goals">
           <FinancialGoals />
         </TabsContent>
-        
-        <TabsContent value="tips" className="space-y-4">
+
+        <TabsContent value="tips">
           <FinancialTips />
         </TabsContent>
       </Tabs>

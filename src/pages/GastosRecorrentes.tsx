@@ -1,84 +1,14 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { GastoRecorrente } from "@/types";
+import { GastoRecorrente, GastosRecorrentesService } from "@/services/gastosRecorrentesService";
 import GastoRecorrenteForm from "@/components/forms/GastoRecorrenteForm";
 import { toast } from "sonner";
-
-// Dados de exemplo para gastos recorrentes
-const initialExpenses: GastoRecorrente[] = [
-  { 
-    id: 1, 
-    description: "Aluguel", 
-    amount: 1200, 
-    day: 10, 
-    category: "Moradia", 
-    type: "debito" 
-  },
-  { 
-    id: 2, 
-    description: "Condomínio", 
-    amount: 350, 
-    day: 10, 
-    category: "Moradia", 
-    type: "debito" 
-  },
-  { 
-    id: 3, 
-    description: "Netflix", 
-    amount: 39.90, 
-    day: 15, 
-    category: "Entretenimento", 
-    type: "debito" 
-  },
-  { 
-    id: 4, 
-    description: "Academia", 
-    amount: 99.90, 
-    day: 5, 
-    category: "Saúde", 
-    type: "debito" 
-  },
-  { 
-    id: 5, 
-    description: "Spotify", 
-    amount: 19.90, 
-    day: 15, 
-    category: "Entretenimento", 
-    type: "debito" 
-  },
-  { 
-    id: 6, 
-    description: "Vale Refeição", 
-    amount: 600, 
-    day: 1, 
-    category: "Benefícios", 
-    type: "beneficio",
-    benefitType: "refeicao" 
-  },
-  { 
-    id: 7, 
-    description: "Vale Alimentação", 
-    amount: 800, 
-    day: 1, 
-    category: "Benefícios", 
-    type: "beneficio",
-    benefitType: "alimentacao"
-  },
-  { 
-    id: 8, 
-    description: "Salário", 
-    amount: 4500, 
-    day: 5, 
-    category: "Renda", 
-    type: "entrada" 
-  },
-];
+import { useAuth } from "@/hooks/useAuth";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -88,12 +18,34 @@ const formatCurrency = (value: number) => {
 };
 
 const GastosRecorrentes = () => {
+  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [recurringExpenses, setRecurringExpenses] = useState<GastoRecorrente[]>(initialExpenses);
+  const [recurringExpenses, setRecurringExpenses] = useState<GastoRecorrente[]>([]);
   const [currentExpense, setCurrentExpense] = useState<GastoRecorrente | undefined>(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadGastosRecorrentes();
+  }, [user]);
+
+  const loadGastosRecorrentes = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const service = new GastosRecorrentesService();
+      const expenses = await service.getGastosRecorrentes(user.id);
+      setRecurringExpenses(expenses);
+    } catch (error) {
+      console.error('Erro ao carregar gastos recorrentes:', error);
+      toast.error('Erro ao carregar gastos recorrentes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Separar os gastos por tipo
   const entradas = recurringExpenses.filter(expense => expense.type === "entrada");
@@ -106,39 +58,54 @@ const GastosRecorrentes = () => {
   const totalBeneficios = beneficios.reduce((sum, expense) => sum + expense.amount, 0);
   const saldoLiquido = totalEntradas - totalSaidas;
 
-  const handleCreateExpense = (data: any) => {
-    const newExpense: GastoRecorrente = {
-      id: recurringExpenses.length + 1,
-      description: data.description,
-      amount: Number(data.amount),
-      day: Number(data.day),
-      category: data.category,
-      type: data.type,
-      ...(data.benefitType && { benefitType: data.benefitType }),
-    };
-    
-    setRecurringExpenses([...recurringExpenses, newExpense]);
+  const handleCreateExpense = async (data: any) => {
+    if (!user) return;
+
+    try {
+      const service = new GastosRecorrentesService();
+      const newExpense = await service.createGastoRecorrente({
+        description: data.description,
+        amount: Number(data.amount),
+        day: Number(data.day),
+        category: data.category,
+        type: data.type,
+        benefitType: data.benefitType,
+        user_id: user.id
+      });
+      
+      setRecurringExpenses([...recurringExpenses, newExpense]);
+      toast.success('Gasto recorrente cadastrado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao criar gasto recorrente:', error);
+      toast.error('Erro ao criar gasto recorrente');
+    }
   };
 
-  const handleEditExpense = (data: any) => {
+  const handleEditExpense = async (data: any) => {
     if (!currentExpense) return;
-    
-    const updatedExpenses = recurringExpenses.map(expense => 
-      expense.id === currentExpense.id 
-        ? {
-            ...expense,
-            description: data.description,
-            amount: Number(data.amount),
-            day: Number(data.day),
-            category: data.category,
-            type: data.type,
-            ...(data.benefitType ? { benefitType: data.benefitType } : { benefitType: undefined }),
-          } 
-        : expense
-    );
-    
-    setRecurringExpenses(updatedExpenses);
-    setCurrentExpense(undefined);
+
+    try {
+      const service = new GastosRecorrentesService();
+      const updatedExpense = await service.updateGastoRecorrente(currentExpense.id, {
+        description: data.description,
+        amount: Number(data.amount),
+        day: Number(data.day),
+        category: data.category,
+        type: data.type,
+        benefitType: data.benefitType
+      });
+      
+      const updatedExpenses = recurringExpenses.map(expense => 
+        expense.id === currentExpense.id ? updatedExpense : expense
+      );
+      
+      setRecurringExpenses(updatedExpenses);
+      setCurrentExpense(undefined);
+      toast.success('Gasto recorrente atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar gasto recorrente:', error);
+      toast.error('Erro ao atualizar gasto recorrente');
+    }
   };
 
   const openEditDialog = (expense: GastoRecorrente) => {
@@ -146,24 +113,78 @@ const GastosRecorrentes = () => {
     setIsEditDialogOpen(true);
   };
 
-  const confirmDelete = (id: number) => {
+  const confirmDelete = (id: string) => {
     setExpenseToDelete(id);
     setDeleteDialogOpen(true);
   };
 
-  const handleDelete = () => {
-    if (expenseToDelete === null) return;
-    
-    const updatedExpenses = recurringExpenses.filter(
-      expense => expense.id !== expenseToDelete
-    );
-    
-    setRecurringExpenses(updatedExpenses);
-    setDeleteDialogOpen(false);
-    setExpenseToDelete(null);
-    
-    toast.success("Gasto recorrente excluído com sucesso!");
+  const handleDelete = async () => {
+    if (!expenseToDelete) return;
+
+    try {
+      const service = new GastosRecorrentesService();
+      await service.deleteGastoRecorrente(expenseToDelete);
+      
+      const updatedExpenses = recurringExpenses.filter(
+        expense => expense.id !== expenseToDelete
+      );
+      
+      setRecurringExpenses(updatedExpenses);
+      setDeleteDialogOpen(false);
+      setExpenseToDelete(null);
+      
+      toast.success('Gasto recorrente excluído com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir gasto recorrente:', error);
+      toast.error('Erro ao excluir gasto recorrente');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (recurringExpenses.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold tracking-tight">Gastos Recorrentes</h1>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Gasto Recorrente
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cadastrar Gasto Recorrente</DialogTitle>
+              </DialogHeader>
+              <GastoRecorrenteForm 
+                onClose={() => setIsDialogOpen(false)}
+                onSubmit={handleCreateExpense}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-6 space-y-4">
+            <p className="text-gray-500 text-center">
+              Você ainda não tem nenhum gasto recorrente cadastrado. Comece registrando seus gastos fixos mensais.
+            </p>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              Cadastrar Primeiro Gasto Recorrente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -328,14 +349,12 @@ const GastosRecorrentes = () => {
 
       {/* Diálogo de confirmação de exclusão */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
           </DialogHeader>
-          <div className="py-3">
-            <p>Tem certeza que deseja excluir este gasto recorrente?</p>
-          </div>
-          <div className="flex justify-end gap-3">
+          <p>Tem certeza que deseja excluir este gasto recorrente?</p>
+          <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancelar
             </Button>

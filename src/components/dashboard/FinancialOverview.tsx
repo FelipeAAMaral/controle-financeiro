@@ -1,7 +1,12 @@
-
 import { BarChart, PieChart, AreaChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { DashboardService } from "@/services/dashboardService";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 // Dados de exemplo para gastos por categoria
 const expenseData = [
@@ -42,179 +47,117 @@ const benefitsData = [
   { name: "Saúde", value: 65, color: "#FF00FF" },
 ];
 
+interface FinancialOverviewData {
+  saldoAtual: number;
+  variacaoSaldo: number;
+  totalEntradas: number;
+  variacaoEntradas: number;
+  totalSaidas: number;
+  variacaoSaidas: number;
+}
+
 const FinancialOverview = () => {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Gastos por Categoria</CardTitle>
-            <CardDescription>Como seus gastos estão distribuídos</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expenseData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {expenseData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => (
-                      new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(value))
-                    )} 
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+  const { user } = useAuth();
+  const [data, setData] = useState<FinancialOverviewData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Fluxo de Caixa</CardTitle>
-            <CardDescription>Entradas vs Saídas nos últimos 6 meses</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={cashFlowData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => (
-                      new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(value))
-                    )} 
-                  />
-                  <Legend />
-                  {/* Combinação de entradas em uma coluna com cores diferentes */}
-                  <Bar 
-                    name="Entradas (Total)" 
-                    stackId="entrada"
-                    dataKey="entradaDinheiro" 
-                    fill="#4ade80" 
-                  />
-                  <Bar 
-                    name="Entradas (Benefício)" 
-                    stackId="entrada"
-                    dataKey="entradaBeneficio" 
-                    fill="#a7f3d0" 
-                  />
-                  
-                  {/* Combinação de saídas em uma coluna com cores diferentes */}
-                  <Bar 
-                    name="Saídas (Total)" 
-                    stackId="saida"
-                    dataKey="saidaDinheiro" 
-                    fill="#f87171" 
-                  />
-                  <Bar 
-                    name="Saídas (Benefício)" 
-                    stackId="saida"
-                    dataKey="saidaBeneficio" 
-                    fill="#fecaca" 
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Evolução do Patrimônio</CardTitle>
-            <CardDescription>Crescimento do seu patrimônio total</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={netWorthData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => (
-                      new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(value))
-                    )} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="valor" 
-                    name="Patrimônio" 
-                    stroke="#3b82f6" 
-                    fill="#93c5fd" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      try {
+        setLoading(true);
+        const dashboardService = new DashboardService();
+        const overview = await dashboardService.getFinancialOverview(user.id);
+        setData(overview);
+      } catch (error) {
+        console.error('Erro ao carregar visão geral financeira:', error);
+        toast.error('Erro ao carregar visão geral financeira');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição de Benefícios</CardTitle>
-            <CardDescription>Como você está usando seus benefícios</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={benefitsData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {benefitsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => (
-                      new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(value))
-                    )} 
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+    loadData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mt-2" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
+    );
+  }
+
+  if (!data || (data.totalEntradas === 0 && data.totalSaidas === 0)) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-6 space-y-4">
+          <p className="text-gray-500 text-center">
+            Você ainda não tem nenhuma transação registrada. Comece registrando suas entradas e saídas para ter uma visão geral das suas finanças.
+          </p>
+          <Button onClick={() => navigate('/transacoes/nova')}>
+            Registrar Primeira Transação
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Saldo Atual</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold text-green-600">
+            R$ {data.saldoAtual.toFixed(2)}
+          </p>
+          <p className={`text-sm mt-2 ${data.variacaoSaldo >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {data.variacaoSaldo >= 0 ? '+' : ''}{data.variacaoSaldo.toFixed(1)}% vs mês anterior
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Total de Entradas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold text-green-600">
+            R$ {data.totalEntradas.toFixed(2)}
+          </p>
+          <p className={`text-sm mt-2 ${data.variacaoEntradas >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {data.variacaoEntradas >= 0 ? '+' : ''}{data.variacaoEntradas.toFixed(1)}% vs mês anterior
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Total de Saídas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold text-red-600">
+            R$ {data.totalSaidas.toFixed(2)}
+          </p>
+          <p className={`text-sm mt-2 ${data.variacaoSaidas <= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {data.variacaoSaidas >= 0 ? '+' : ''}{data.variacaoSaidas.toFixed(1)}% vs mês anterior
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

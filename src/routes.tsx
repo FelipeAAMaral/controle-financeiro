@@ -21,6 +21,7 @@ import Configuracoes from "./pages/Configuracoes";
 import SaudeFin from "./pages/SaudeFin";
 import InvestimentosDashboard from "./pages/InvestimentosDashboard";
 import DatabaseSetup from "./pages/DatabaseSetup";
+import TestDb from "./pages/TestDb";
 
 // Add a loading component to use with lazy loading
 const LoadingFallback = () => (
@@ -48,6 +49,9 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      {/* Test Routes */}
+      <Route path="/test-db" element={<TestDb />} />
       
       {/* Database Setup */}
       <Route path="/database-setup" element={

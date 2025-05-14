@@ -1,4 +1,3 @@
-
 // Tipo para gastos recorrentes
 export interface GastoRecorrente {
   id: number;
@@ -16,21 +15,24 @@ export interface Transacao {
   description: string;
   date: string;
   amount: number;
-  type: string;
+  type: 'entrada' | 'saida' | 'beneficio';
   category: string;
   account: string;
   benefitType?: string;
+  user_id: string;
 }
 
 // Tipo para objetivos financeiros
 export interface Objetivo {
   id: string;
   title: string;
-  currentAmount: number;
-  targetAmount: number;
+  currentAmount: string;
+  targetAmount: string;
   deadline: string;
   icon: string;
   color: string;
+  user_id: string;
+  thumbnail?: string;
 }
 
 // Tipo para viagens
@@ -39,9 +41,10 @@ export interface Viagem {
   nome: string;
   startDate: string;
   endDate: string;
-  objetivo?: string; // ID do objetivo relacionado
+  objetivo: string;
   destinos: Destino[];
   budget: number;
+  user_id: string;
 }
 
 // Tipo para destinos em uma viagem
@@ -51,7 +54,7 @@ export interface Destino {
   pais: string;
   dataChegada: string;
   dataPartida: string;
-  hospedagem?: string;
+  hospedagem: string;
   observacoes?: string;
 }
 
@@ -75,25 +78,26 @@ export interface Locomocao {
 export interface Investimento {
   id: string;
   nome: string;
-  tipo: 'acao' | 'fundo' | 'tesouro' | 'poupanca' | 'cdb' | 'lci' | 'lca' | 'cripto' | 'internacional' | 'outro';
-  categoria: 'renda_fixa' | 'renda_variavel' | 'cripto' | 'internacional';
-  codigo?: string; // Código do ativo (ex: PETR4, BTCUSD)
+  tipo: string;
+  categoria: string;
+  codigo: string;
   valorInicial: number;
   dataCompra: string;
+  rentabilidade?: number;
+  vencimento?: string;
+  corretora: string;
+  moeda: string;
   quantidade?: number;
   precoUnitario?: number;
-  rentabilidade?: number; // Em percentual (ex: 10.5 para 10.5%)
-  vencimento?: string; // Para investimentos com data de vencimento
-  corretora?: string;
-  moeda: 'BRL' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'outro';
   observacoes?: string;
+  user_id: string;
 }
 
 // Tipo para cotação de moedas
 export interface CotacaoMoeda {
-  codigo: string; // Ex: USD, EUR, GBP
+  codigo: string;
   nome: string;
-  valor: number; // Valor em relação ao Real (BRL)
+  valor: number;
   dataAtualizacao: string;
 }
 
@@ -108,7 +112,15 @@ export interface PlanejamentoGastoViagem {
   moedaDestino: string;
   valorConvertido: number;
   taxaConversao: number;
-  taxaIOF?: number;
-  taxaBancaria?: number;
-  data?: string;
+  taxaIOF: number;
+  taxaBancaria: number;
+  data: string;
+  user_id: string;
+}
+
+export interface MarketData {
+  index: string;
+  value: number;
+  change: number;
+  lastUpdate: string;
 }
