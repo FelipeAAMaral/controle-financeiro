@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-6">
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Nova Transação</h2>
+        
+        <form hx-post="/transactions" 
+              hx-target="#transaction-list"
+              hx-swap="afterbegin"
+              class="space-y-4">
+            
+            <!-- Tipo de Transação -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                <div class="flex gap-4">
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="type" value="income" 
+                               class="form-radio text-indigo-600" 
+                               checked>
+                        <span class="ml-2 text-gray-700">Entrada</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="type" value="expense" 
+                               class="form-radio text-indigo-600">
+                        <span class="ml-2 text-gray-700">Saída</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Descrição -->
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <input type="text" id="description" name="description" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                       placeholder="Ex: Salário, Aluguel, Supermercado...">
+            </div>
+
+            <!-- Valor -->
+            <div>
+                <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2 text-gray-500">R$</span>
+                    <input type="number" id="amount" name="amount" required step="0.01" min="0.01"
+                           class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="0,00">
+                </div>
+            </div>
+
+            <!-- Categoria -->
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select id="category" name="category" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">Selecione uma categoria</option>
+                    <optgroup label="Entradas">
+                        <option value="Salário">Salário</option>
+                        <option value="Freelance">Freelance</option>
+                        <option value="Investimentos">Investimentos</option>
+                        <option value="Outros">Outros</option>
+                    </optgroup>
+                    <optgroup label="Saídas">
+                        <option value="Moradia">Moradia</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Saúde">Saúde</option>
+                        <option value="Educação">Educação</option>
+                        <option value="Lazer">Lazer</option>
+                        <option value="Outros">Outros</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Data -->
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                <input type="date" id="date" name="date" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                       value="{{ now.strftime('%Y-%m-%d') }}">
+            </div>
+
+            <!-- Botões -->
+            <div class="flex justify-end gap-4 pt-4">
+                <button type="button" onclick="window.history.back()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Transações Recentes -->
+<div id="transaction-list" class="max-w-2xl mx-auto mt-8">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Transações Recentes</h3>
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for transaction in recent_transactions %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ transaction.date.strftime('%d/%m/%Y') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ transaction.description }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ transaction.category }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if transaction.type == 'income' %}text-green-600{% else %}text-red-600{% endif %}">
+                        R$ {{ "%.2f"|format(transaction.amount) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Atualiza as opções de categoria baseado no tipo de transação
+    document.querySelectorAll('input[name="type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const categorySelect = document.getElementById('category');
+            const isIncome = this.value === 'income';
+            
+            // Limpa as opções atuais
+            categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>';
+            
+            // Adiciona as opções apropriadas
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = isIncome ? 'Entradas' : 'Saídas';
+            
+            const options = isIncome ? [
+                'Salário', 'Freelance', 'Investimentos', 'Outros'
+            ] : [
+                'Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Outros'
+            ];
+            
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                optgroup.appendChild(optionElement);
+            });
+            
+            categorySelect.appendChild(optgroup);
+        });
+    });
+</script>
+{% endblock %} 

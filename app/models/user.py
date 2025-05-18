@@ -16,4 +16,5 @@ class User(Base):
 
     # Relationships
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
-    goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan") 
+    goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
+    indicators = relationship("Indicator", back_populates="user", cascade="all, delete-orphan") 

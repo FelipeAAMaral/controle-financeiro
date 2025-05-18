@@ -1,53 +1,51 @@
-{% extends "base.html" %}
-
-{% block title %}Login{% endblock %}
-
-{% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Entre na sua conta
-            </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Ou
-                <a href="/auth/register" class="font-medium text-primary hover:text-primary-dark">
-                    crie uma nova conta
-                </a>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - {{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 to-white min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
+        <div class="mb-6 text-center">
+            <img src="/static/logo.svg" alt="Logo" class="mx-auto mb-2 w-16 h-16">
+            <h2 class="text-3xl font-bold text-gray-800">Bem-vindo de volta!</h2>
+            <p class="text-gray-500">Acesse sua conta para continuar</p>
+            {% if error %}
+            <div class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
+            {% endif %}
+        </div>
+        <form class="space-y-4" action="/auth/login" method="POST">
+            <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa fa-envelope"></i></span>
+                <input id="email" name="email" type="email" required placeholder="E-mail"
+                    class="pl-10 pr-3 py-2 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-gray-800">
+            </div>
+            <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa fa-lock"></i></span>
+                <input id="password" name="password" type="password" required placeholder="Senha"
+                    class="pl-10 pr-3 py-2 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-gray-800">
+            </div>
+            <button type="submit"
+                class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow transition">Entrar</button>
+        </form>
+        <div class="flex items-center my-6">
+            <div class="flex-grow border-t border-gray-200"></div>
+            <span class="mx-2 text-gray-400 text-xs">ou</span>
+            <div class="flex-grow border-t border-gray-200"></div>
+        </div>
+        <a href="/auth/login/google" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 shadow transition font-medium text-gray-700">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
+            Entrar com Google
+        </a>
+        <div class="text-center mt-6">
+            <p class="text-sm text-gray-600">
+                Não tem uma conta?
+                <a href="/auth/register" class="font-medium text-indigo-600 hover:text-indigo-500">Cadastre-se aqui</a>
             </p>
         </div>
-        <form class="mt-8 space-y-6" action="/api/v1/auth/token" method="POST" hx-post="/api/v1/auth/token" hx-target="body">
-            <div class="rounded-md shadow-sm -space-y-px">
-                <div>
-                    <label for="email" class="sr-only">Email</label>
-                    <input id="email" name="username" type="email" required
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                        placeholder="Email">
-                </div>
-                <div>
-                    <label for="password" class="sr-only">Senha</label>
-                    <input id="password" name="password" type="password" required
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                        placeholder="Senha">
-                </div>
-            </div>
-
-            <div>
-                <button type="submit"
-                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                        <svg class="h-5 w-5 text-primary-light group-hover:text-primary-lighter"
-                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                            aria-hidden="true">
-                            <path fill-rule="evenodd"
-                                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                clip-rule="evenodd" />
-                        </svg>
-                    </span>
-                    Entrar
-                </button>
-            </div>
-        </form>
     </div>
-</div>
-{% endblock %} 
+</body>
+</html> 

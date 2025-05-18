@@ -1,59 +1,47 @@
-{% extends "base.html" %}
-
-{% block title %}Register{% endblock %}
-
-{% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Crie sua conta
-            </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Ou
-                <a href="/auth/login" class="font-medium text-primary hover:text-primary-dark">
-                    entre com uma conta existente
-                </a>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - {{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 to-white min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
+        <div class="mb-6 text-center">
+            <img src="/static/logo.svg" alt="Logo" class="mx-auto mb-2 w-16 h-16">
+            <h2 class="text-3xl font-bold text-gray-800">Crie sua conta</h2>
+            <p class="text-gray-500">Preencha os campos para se cadastrar</p>
+            {% if error %}
+            <div class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
+            {% endif %}
+        </div>
+        <form class="space-y-4" action="/auth/register" method="POST">
+            <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa fa-envelope"></i></span>
+                <input id="email" name="email" type="email" required placeholder="E-mail"
+                    class="pl-10 pr-3 py-2 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-gray-800">
+            </div>
+            <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa fa-user"></i></span>
+                <input id="full_name" name="full_name" type="text" required placeholder="Nome completo"
+                    class="pl-10 pr-3 py-2 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-gray-800">
+            </div>
+            <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa fa-lock"></i></span>
+                <input id="password" name="password" type="password" required placeholder="Senha"
+                    class="pl-10 pr-3 py-2 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-gray-800">
+            </div>
+            <button type="submit"
+                class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow transition">Cadastrar</button>
+        </form>
+        <div class="text-center mt-6">
+            <p class="text-sm text-gray-600">
+                Já tem uma conta?
+                <a href="/auth/login" class="font-medium text-indigo-600 hover:text-indigo-500">Entrar</a>
             </p>
         </div>
-        <form class="mt-8 space-y-6" action="/api/v1/auth/register" method="POST" hx-post="/api/v1/auth/register" hx-target="body">
-            <div class="rounded-md shadow-sm -space-y-px">
-                <div>
-                    <label for="email" class="sr-only">Email</label>
-                    <input id="email" name="email" type="email" required
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                        placeholder="Email">
-                </div>
-                <div>
-                    <label for="full_name" class="sr-only">Nome completo</label>
-                    <input id="full_name" name="full_name" type="text" required
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                        placeholder="Nome completo">
-                </div>
-                <div>
-                    <label for="password" class="sr-only">Senha</label>
-                    <input id="password" name="password" type="password" required
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                        placeholder="Senha">
-                </div>
-            </div>
-
-            <div>
-                <button type="submit"
-                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                        <svg class="h-5 w-5 text-primary-light group-hover:text-primary-lighter"
-                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                            aria-hidden="true">
-                            <path fill-rule="evenodd"
-                                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                clip-rule="evenodd" />
-                        </svg>
-                    </span>
-                    Criar conta
-                </button>
-            </div>
-        </form>
     </div>
-</div>
-{% endblock %} 
+</body>
+</html> 
