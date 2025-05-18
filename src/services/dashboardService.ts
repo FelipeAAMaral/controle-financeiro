@@ -46,135 +46,150 @@ export interface Transaction {
 
 export class DashboardService {
   async getFinancialOverview(userId: string): Promise<FinancialOverview> {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    try {
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    // Get current month transactions
-    const { data: currentMonthData, error: currentMonthError } = await supabase
-      .from("transactions")
-      .select("amount, type, category")
-      .eq("user_id", userId)
-      .gte("date", new Date(currentYear, currentMonth, 1).toISOString())
-      .lt("date", new Date(currentYear, currentMonth + 1, 1).toISOString());
+      // Get current month transactions
+      const { data: currentMonthData, error: currentMonthError } = await supabase
+        .from("transactions")
+        .select("amount, type, category")
+        .eq("user_id", userId)
+        .gte("date", new Date(currentYear, currentMonth, 1).toISOString())
+        .lt("date", new Date(currentYear, currentMonth + 1, 1).toISOString());
 
-    if (currentMonthError) throw currentMonthError;
+      if (currentMonthError) throw currentMonthError;
 
-    // Get last month transactions
-    const { data: lastMonthData, error: lastMonthError } = await supabase
-      .from("transactions")
-      .select("amount, type")
-      .eq("user_id", userId)
-      .gte("date", new Date(lastYear, lastMonth, 1).toISOString())
-      .lt("date", new Date(lastYear, lastMonth + 1, 1).toISOString());
+      // Get last month transactions
+      const { data: lastMonthData, error: lastMonthError } = await supabase
+        .from("transactions")
+        .select("amount, type")
+        .eq("user_id", userId)
+        .gte("date", new Date(lastYear, lastMonth, 1).toISOString())
+        .lt("date", new Date(lastYear, lastMonth + 1, 1).toISOString());
 
-    if (lastMonthError) throw lastMonthError;
+      if (lastMonthError) throw lastMonthError;
 
-    // Calculate current month totals
-    const totalEntradas = currentMonthData
-      ?.filter(t => t.type === "entrada")
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      // Calculate current month totals
+      const totalEntradas = (currentMonthData || [])
+        .filter(t => t.type === "entrada")
+        .reduce((sum, t) => sum + t.amount, 0);
 
-    const totalSaidas = currentMonthData
-      ?.filter(t => t.type === "saida")
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      const totalSaidas = (currentMonthData || [])
+        .filter(t => t.type === "saida")
+        .reduce((sum, t) => sum + t.amount, 0);
 
-    // Calculate last month totals
-    const lastMonthEntradas = lastMonthData
-      ?.filter(t => t.type === "entrada")
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      // Calculate last month totals
+      const lastMonthEntradas = (lastMonthData || [])
+        .filter(t => t.type === "entrada")
+        .reduce((sum, t) => sum + t.amount, 0);
 
-    const lastMonthSaidas = lastMonthData
-      ?.filter(t => t.type === "saida")
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      const lastMonthSaidas = (lastMonthData || [])
+        .filter(t => t.type === "saida")
+        .reduce((sum, t) => sum + t.amount, 0);
 
-    // Calculate variations
-    const variacaoEntradas = lastMonthEntradas === 0 ? 0 : ((totalEntradas - lastMonthEntradas) / lastMonthEntradas) * 100;
-    const variacaoSaidas = lastMonthSaidas === 0 ? 0 : ((totalSaidas - lastMonthSaidas) / lastMonthSaidas) * 100;
+      // Calculate variations
+      const variacaoEntradas = lastMonthEntradas === 0 ? 0 : ((totalEntradas - lastMonthEntradas) / lastMonthEntradas) * 100;
+      const variacaoSaidas = lastMonthSaidas === 0 ? 0 : ((totalSaidas - lastMonthSaidas) / lastMonthSaidas) * 100;
 
-    // Get current balance
-    const { data: balanceData, error: balanceError } = await supabase
-      .from("transactions")
-      .select("amount, type")
-      .eq("user_id", userId);
+      // Get current balance
+      const { data: balanceData, error: balanceError } = await supabase
+        .from("transactions")
+        .select("amount, type")
+        .eq("user_id", userId);
 
-    if (balanceError) throw balanceError;
+      if (balanceError) throw balanceError;
 
-    const saldoAtual = balanceData?.reduce((sum, t) => {
-      return sum + (t.type === "entrada" ? t.amount : -t.amount);
-    }, 0) || 0;
+      const saldoAtual = (balanceData || []).reduce((sum, t) => {
+        return sum + (t.type === "entrada" ? t.amount : -t.amount);
+      }, 0);
 
-    // Calculate expenses by category
-    const gastosPorCategoria = currentMonthData
-      ?.filter(t => t.type === "saida")
-      .reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + t.amount;
-        return acc;
-      }, {} as Record<string, number>) || {};
+      // Calculate expenses by category
+      const gastosPorCategoria = (currentMonthData || [])
+        .filter(t => t.type === "saida")
+        .reduce((acc, t) => {
+          acc[t.category] = (acc[t.category] || 0) + t.amount;
+          return acc;
+        }, {} as Record<string, number>);
 
-    return {
-      totalEntradas,
-      totalSaidas,
-      saldoAtual,
-      variacaoEntradas,
-      variacaoSaidas,
-      gastosPorCategoria,
-    };
+      return {
+        totalEntradas,
+        totalSaidas,
+        saldoAtual,
+        variacaoEntradas,
+        variacaoSaidas,
+        gastosPorCategoria,
+      };
+    } catch (error) {
+      console.error('Error in getFinancialOverview:', error);
+      throw error;
+    }
   }
 
   async getRecentTransactions(userId: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", userId)
-      .order("date", { ascending: false })
-      .limit(10);
+    try {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: false })
+        .limit(10);
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error in getRecentTransactions:', error);
+      throw error;
+    }
   }
 
   async getMonthlyEvolution(userId: string): Promise<{ month: string; entradas: number; saidas: number }[]> {
-    const { data: transactions, error } = await supabase
-      .from("transactions")
-      .select("amount, type, date")
-      .eq("user_id", userId)
-      .order("date", { ascending: true });
+    try {
+      const { data: transactions, error } = await supabase
+        .from("transactions")
+        .select("amount, type, date")
+        .eq("user_id", userId)
+        .order("date", { ascending: true });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    const evolution: { month: string; entradas: number; saidas: number }[] = [];
+      const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const evolution: { month: string; entradas: number; saidas: number }[] = [];
 
-    // Group transactions by month
-    const transactionsByMonth = transactions?.reduce((acc, t) => {
-      const date = new Date(t.date);
-      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-      
-      if (!acc[monthKey]) {
-        acc[monthKey] = {
-          entradas: 0,
-          saidas: 0,
-          month: months[date.getMonth()],
-        };
-      }
+      // Group transactions by month
+      const transactionsByMonth = (transactions || []).reduce((acc, t) => {
+        const date = new Date(t.date);
+        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+        
+        if (!acc[monthKey]) {
+          acc[monthKey] = {
+            entradas: 0,
+            saidas: 0,
+            month: months[date.getMonth()],
+          };
+        }
 
-      if (t.type === "entrada") {
-        acc[monthKey].entradas += t.amount;
-      } else {
-        acc[monthKey].saidas += t.amount;
-      }
+        if (t.type === "entrada") {
+          acc[monthKey].entradas += t.amount;
+        } else {
+          acc[monthKey].saidas += t.amount;
+        }
 
-      return acc;
-    }, {} as Record<string, { month: string; entradas: number; saidas: number }>) || {};
+        return acc;
+      }, {} as Record<string, { month: string; entradas: number; saidas: number }>);
 
-    // Convert to array and sort by month
-    Object.values(transactionsByMonth).forEach(monthData => {
-      evolution.push(monthData);
-    });
+      // Convert to array and sort by month
+      Object.values(transactionsByMonth).forEach(monthData => {
+        evolution.push(monthData);
+      });
 
-    return evolution;
+      return evolution;
+    } catch (error) {
+      console.error('Error in getMonthlyEvolution:', error);
+      throw error;
+    }
   }
 
   async getFinancialGoals(userId: string): Promise<FinancialGoal[]> {

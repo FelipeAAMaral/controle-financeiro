@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +30,7 @@ const categories = [
 
 // Schema de validação com zod
 const gastoRecorrenteSchema = z.object({
-  id: z.number().optional(),
+  id: z.string().optional(),
   description: z.string().min(3, { message: "Descrição deve ter pelo menos 3 caracteres" }),
   amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Valor deve ser um número positivo",

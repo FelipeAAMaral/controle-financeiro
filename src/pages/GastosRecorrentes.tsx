@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GastoRecorrente, GastosRecorrentesService } from "@/services/gastosRecorrentesService";
 import GastoRecorrenteForm from "@/components/forms/GastoRecorrenteForm";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -19,13 +20,13 @@ const formatCurrency = (value: number) => {
 
 const GastosRecorrentes = () => {
   const { user } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [recurringExpenses, setRecurringExpenses] = useState<GastoRecorrente[]>([]);
   const [currentExpense, setCurrentExpense] = useState<GastoRecorrente | undefined>(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadGastosRecorrentes();
@@ -58,29 +59,6 @@ const GastosRecorrentes = () => {
   const totalBeneficios = beneficios.reduce((sum, expense) => sum + expense.amount, 0);
   const saldoLiquido = totalEntradas - totalSaidas;
 
-  const handleCreateExpense = async (data: any) => {
-    if (!user) return;
-
-    try {
-      const service = new GastosRecorrentesService();
-      const newExpense = await service.createGastoRecorrente({
-        description: data.description,
-        amount: Number(data.amount),
-        day: Number(data.day),
-        category: data.category,
-        type: data.type,
-        benefitType: data.benefitType,
-        user_id: user.id
-      });
-      
-      setRecurringExpenses([...recurringExpenses, newExpense]);
-      toast.success('Gasto recorrente cadastrado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao criar gasto recorrente:', error);
-      toast.error('Erro ao criar gasto recorrente');
-    }
-  };
-
   const handleEditExpense = async (data: any) => {
     if (!currentExpense) return;
 
@@ -88,11 +66,11 @@ const GastosRecorrentes = () => {
       const service = new GastosRecorrentesService();
       const updatedExpense = await service.updateGastoRecorrente(currentExpense.id, {
         description: data.description,
-        amount: Number(data.amount),
-        day: Number(data.day),
+        amount: parseFloat(data.amount),
+        day: parseInt(data.day, 10),
         category: data.category,
         type: data.type,
-        benefitType: data.benefitType
+        benefitType: data.type === 'beneficio' ? data.benefitType : undefined
       });
       
       const updatedExpenses = recurringExpenses.map(expense => 
@@ -101,6 +79,7 @@ const GastosRecorrentes = () => {
       
       setRecurringExpenses(updatedExpenses);
       setCurrentExpense(undefined);
+      setIsEditDialogOpen(false);
       toast.success('Gasto recorrente atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar gasto recorrente:', error);
@@ -153,23 +132,10 @@ const GastosRecorrentes = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold tracking-tight">Gastos Recorrentes</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Gasto Recorrente
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cadastrar Gasto Recorrente</DialogTitle>
-              </DialogHeader>
-              <GastoRecorrenteForm 
-                onClose={() => setIsDialogOpen(false)}
-                onSubmit={handleCreateExpense}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => navigate('/gastos-recorrentes/novo')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Gasto Recorrente
+          </Button>
         </div>
 
         <Card>
@@ -177,7 +143,7 @@ const GastosRecorrentes = () => {
             <p className="text-gray-500 text-center">
               Você ainda não tem nenhum gasto recorrente cadastrado. Comece registrando seus gastos fixos mensais.
             </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => navigate('/gastos-recorrentes/novo')}>
               Cadastrar Primeiro Gasto Recorrente
             </Button>
           </CardContent>
@@ -190,23 +156,10 @@ const GastosRecorrentes = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Gastos Recorrentes</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Gasto Recorrente
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Cadastrar Gasto Recorrente</DialogTitle>
-            </DialogHeader>
-            <GastoRecorrenteForm 
-              onClose={() => setIsDialogOpen(false)}
-              onSubmit={handleCreateExpense}
-            />
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate('/gastos-recorrentes/novo')}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Gasto Recorrente
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

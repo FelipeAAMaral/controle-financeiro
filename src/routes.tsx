@@ -8,11 +8,12 @@ import MainLayout from "./components/layout/MainLayout";
 import Perfil from "./pages/Perfil";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Register from "./pages/auth/Register";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import ControleMensal from "./pages/ControleMensal";
 import Indicadores from "./pages/Indicadores";
 import GastosRecorrentes from "./pages/GastosRecorrentes";
+import NovoGastoRecorrente from "./pages/NovoGastoRecorrente";
 import Objetivos from "./pages/Objetivos";
 import EditarObjetivo from "./pages/EditarObjetivo";
 import Transacoes from "./pages/Transacoes";
@@ -66,7 +67,7 @@ const AppRoutes = () => {
       <Route path="/" element={
         <ProtectedRoute>
           <MainLayout>
-            <Dashboard />
+            <Home />
           </MainLayout>
         </ProtectedRoute>
       } />
@@ -99,6 +100,14 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <MainLayout>
             <GastosRecorrentes />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/gastos-recorrentes/novo" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <NovoGastoRecorrente />
           </MainLayout>
         </ProtectedRoute>
       } />

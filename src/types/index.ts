@@ -1,6 +1,6 @@
 // Tipo para gastos recorrentes
 export interface GastoRecorrente {
-  id: number;
+  id: string;
   description: string;
   amount: number;
   day: number;

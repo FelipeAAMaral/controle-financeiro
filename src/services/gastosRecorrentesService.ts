@@ -32,9 +32,11 @@ export class GastosRecorrentesService {
 
   async createGastoRecorrente(gasto: Omit<GastoRecorrente, 'id' | 'created_at' | 'updated_at'>): Promise<GastoRecorrente> {
     try {
+      const { benefitType, ...gastoData } = gasto;
+      
       const { data, error } = await supabase
         .from('recurring_expenses')
-        .insert([gasto])
+        .insert([gastoData])
         .select()
         .single();
 
@@ -50,7 +52,10 @@ export class GastosRecorrentesService {
     try {
       const { data, error } = await supabase
         .from('recurring_expenses')
-        .update(gasto)
+        .update({
+          ...gasto,
+          benefit_type: gasto.benefitType
+        })
         .eq('id', id)
         .select()
         .single();

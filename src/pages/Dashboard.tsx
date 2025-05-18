@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp, Plane, Check, Flag, Database } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { PieChart, BarChart, Wallet, ArrowUp, ArrowDown, PiggyBank, TrendingUp, Plane, Check, Flag, Database, CreditCard } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -20,106 +20,132 @@ import { Transacao } from '@/types';
 import { toast } from 'sonner';
 import { Plus } from "lucide-react";
 
-const Dashboard = () => {
-  console.log("Rendering Dashboard component"); // Debug log
-  
+const Home = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
   const [upcomingTrips, setUpcomingTrips] = useState<Viagem[]>([]);
   const [databaseInitialized, setDatabaseInitialized] = useState<boolean | null>(null);
   const { toast: toastNotification } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const mounted = useRef(true);
+  const initialLoadDone = useRef(false);
 
   const [totalPatrimonio, setTotalPatrimonio] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [financialOverview, setFinancialOverview] = useState<DashboardFinancialOverview | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transacao[]>([]);
   const [monthlyEvolution, setMonthlyEvolution] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
 
+  const loadDashboardData = useCallback(async () => {
+    if (!user || !mounted.current) return;
+
+    try {
+      setIsLoading(true);
+      const dashboardService = new DashboardService();
+      const [overview, transactions, evolution] = await Promise.all([
+        dashboardService.getFinancialOverview(user.id),
+        dashboardService.getRecentTransactions(user.id),
+        dashboardService.getMonthlyEvolution(user.id)
+      ]);
+
+      if (!mounted.current) return;
+
+      setFinancialOverview(overview);
+      setRecentTransactions(transactions.map(t => ({
+        id: t.id,
+        description: t.description,
+        date: t.date,
+        amount: t.amount,
+        type: t.type,
+        category: t.category,
+        account: t.account || 'Nubank',
+        user_id: t.user_id
+      })));
+      setMonthlyEvolution(evolution);
+      
+      setHasData(transactions.length > 0 || overview.totalEntradas > 0 || overview.totalSaidas > 0);
+      initialLoadDone.current = true;
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+      if (mounted.current) {
+        toast.error('Erro ao carregar dados do dashboard');
+      }
+    } finally {
+      if (mounted.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [user]);
+
   useEffect(() => {
-    console.log("Dashboard useEffect running"); // Debug log
-    
-    // Check if database is initialized
-    const checkDatabase = async () => {
+    mounted.current = true;
+    initialLoadDone.current = false;
+
+    const initializeDashboard = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
+        setIsLoading(true);
+
+        // Check database initialization
         const { data, error } = await supabase
           .from('investments')
           .select('id')
           .limit(1);
         
-        setDatabaseInitialized(error ? false : true);
-      } catch (e) {
-        console.error("Error checking database:", e);
-        setDatabaseInitialized(false);
-      }
-    };
-    
-    checkDatabase();
-    
-    // Simular o carregamento de dados de patrimônio
-    const timer = setTimeout(() => {
-      setTotalPatrimonio(22800);
-    }, 500);
+        if (mounted.current) {
+          setDatabaseInitialized(error ? false : true);
+        }
 
-    // Get upcoming trips
-    const loadTrips = async () => {
-      if (!user) return;
-
-      try {
+        // Load trips
         const viagensService = new ViagensService();
         const trips = await viagensService.getUpcomingTrips(user.id);
-        setUpcomingTrips(trips);
+        if (mounted.current) {
+          setUpcomingTrips(trips);
+        }
+
+        // Load dashboard data
+        await loadDashboardData();
+
+        // Set patrimônio
+        if (mounted.current) {
+          setTotalPatrimonio(22800);
+        }
       } catch (error) {
-        console.error('Erro ao carregar viagens:', error);
-        toast.error('Erro ao carregar viagens');
-      }
-    };
-
-    loadTrips();
-    
-    return () => clearTimeout(timer);
-  }, [user]);
-
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      if (!user) return;
-
-      try {
-        setIsLoading(true);
-        const dashboardService = new DashboardService();
-        const [overview, transactions, evolution] = await Promise.all([
-          dashboardService.getFinancialOverview(user.id),
-          dashboardService.getRecentTransactions(user.id),
-          dashboardService.getMonthlyEvolution(user.id)
-        ]);
-
-        setFinancialOverview(overview);
-        setRecentTransactions(transactions.map(t => ({
-          id: t.id,
-          description: t.description,
-          date: t.date,
-          amount: t.amount,
-          type: t.type,
-          category: t.category,
-          account: t.account || 'Nubank',
-          user_id: t.user_id
-        })));
-        setMonthlyEvolution(evolution);
-        
-        // Check if we have any data
-        setHasData(transactions.length > 0 || overview.totalEntradas > 0 || overview.totalSaidas > 0);
-      } catch (error) {
-        console.error('Erro ao carregar dados do dashboard:', error);
-        toast.error('Erro ao carregar dados do dashboard');
+        console.error('Error initializing dashboard:', error);
+        if (mounted.current) {
+          toast.error('Erro ao inicializar o dashboard');
+        }
       } finally {
-        setLoading(false);
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 
-    loadDashboardData();
-  }, [user]);
+    initializeDashboard();
+
+    return () => {
+      mounted.current = false;
+      initialLoadDone.current = false;
+      setIsLoading(false);
+      setFinancialOverview(null);
+      setRecentTransactions([]);
+      setMonthlyEvolution([]);
+      setHasData(false);
+      setTotalPatrimonio(0);
+      setUpcomingTrips([]);
+    };
+  }, [user, loadDashboardData]);
+
+  // Handle tab changes
+  const handleTabChange = (value: string) => {
+    setSelectedTab(value);
+  };
 
   const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
   const capitalizedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
@@ -144,10 +170,12 @@ const Dashboard = () => {
     return tripEndDate < now;
   };
 
-  if (isLoading) {
+  if (isLoading && !initialLoadDone.current) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
       </div>
     );
   }
@@ -155,18 +183,120 @@ const Dashboard = () => {
   if (!hasData) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Bem-vindo ao seu Dashboard Financeiro!</h1>
-          <p className="text-gray-600 mb-8">
-            Parece que você ainda não tem nenhuma transação registrada. Comece agora mesmo a controlar suas finanças!
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold mb-6">Bem-vindo ao seu Controle Financeiro!</h1>
+          <p className="text-gray-600 mb-8 text-lg">
+            Comece agora mesmo a organizar suas finanças de forma simples e eficiente. 
+            Registre suas transações, acompanhe seus gastos e monitore seus objetivos financeiros.
           </p>
-          <Button
-            onClick={() => navigate("/transacoes/nova")}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Registrar Primeira Transação
-          </Button>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-6 w-6 text-primary" />
+                  Transações
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Registre suas entradas e saídas para manter o controle do seu fluxo de caixa.
+                </p>
+                <Button
+                  onClick={() => navigate("/transacoes/nova")}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Registrar Primeira Transação
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-6 w-6 text-primary" />
+                  Gastos Recorrentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Cadastre seus gastos fixos mensais para um melhor planejamento.
+                </p>
+                <Button
+                  onClick={() => navigate("/gastos-recorrentes/novo")}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastrar Gasto Recorrente
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PiggyBank className="h-6 w-6 text-primary" />
+                  Objetivos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Defina seus objetivos financeiros e acompanhe seu progresso.
+                </p>
+                <Button
+                  onClick={() => navigate("/objetivos/novo")}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeiro Objetivo
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-6 w-6 text-primary" />
+                  Investimentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Acompanhe seus investimentos e monitore seu patrimônio.
+                </p>
+                <Button
+                  onClick={() => navigate("/investimentos")}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Registrar Investimento
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-primary/5 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Dicas para Começar</h2>
+            <ul className="text-left space-y-3 text-gray-600">
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-primary mt-0.5" />
+                <span>Registre todas as suas transações diárias para ter um controle preciso</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-primary mt-0.5" />
+                <span>Cadastre seus gastos recorrentes para um melhor planejamento mensal</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-primary mt-0.5" />
+                <span>Defina objetivos financeiros para manter o foco no seu planejamento</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-primary mt-0.5" />
+                <span>Acompanhe seus investimentos para crescer seu patrimônio</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     );
@@ -196,7 +326,7 @@ const Dashboard = () => {
         </Card>
       )}
 
-      <Tabs defaultValue="overview" className="mt-6">
+      <Tabs defaultValue="overview" className="mt-6" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="transactions">Transações</TabsTrigger>
@@ -360,4 +490,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Home;

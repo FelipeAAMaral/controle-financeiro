@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Transacao } from "@/types";
@@ -11,6 +11,7 @@ import { GastosRecorrentesService } from "@/services/gastosRecorrentesService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import GastoRecorrenteForm from "@/components/forms/GastoRecorrenteForm";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -29,6 +30,8 @@ const ControleMensal = () => {
   const [transactions, setTransactions] = useState<Transacao[]>([]);
   const [recurringExpenses, setRecurringExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -54,6 +57,33 @@ const ControleMensal = () => {
       toast.error('Erro ao carregar dados');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateExpense = async (data: any) => {
+    if (!user) return;
+
+    try {
+      setIsSubmitting(true);
+      const service = new GastosRecorrentesService();
+      const newExpense = await service.createGastoRecorrente({
+        description: data.description,
+        amount: parseFloat(data.amount),
+        day: parseInt(data.day, 10),
+        category: data.category,
+        type: data.type,
+        benefitType: data.type === 'beneficio' ? data.benefitType : undefined,
+        user_id: user.id
+      });
+      
+      setRecurringExpenses([...recurringExpenses, newExpense]);
+      toast.success('Gasto recorrente cadastrado com sucesso!');
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao criar gasto recorrente:', error);
+      toast.error('Erro ao criar gasto recorrente');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,7 +120,7 @@ const ControleMensal = () => {
               <Plus className="mr-2 h-4 w-4" />
               Nova Transação
             </Button>
-            <Button onClick={() => navigate("/recurring-expenses")}>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Novo Gasto Recorrente
             </Button>
@@ -106,12 +136,25 @@ const ControleMensal = () => {
               <Button onClick={() => navigate("/transactions/new")}>
                 Registrar Primeira Transação
               </Button>
-              <Button onClick={() => navigate("/recurring-expenses")}>
+              <Button onClick={() => setIsDialogOpen(true)}>
                 Registrar Primeiro Gasto Recorrente
               </Button>
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Novo Gasto Recorrente</DialogTitle>
+            </DialogHeader>
+            <GastoRecorrenteForm
+              onSubmit={handleCreateExpense}
+              onClose={() => setIsDialogOpen(false)}
+              isSubmitting={isSubmitting}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -125,7 +168,7 @@ const ControleMensal = () => {
             <Plus className="mr-2 h-4 w-4" />
             Nova Transação
           </Button>
-          <Button onClick={() => navigate("/recurring-expenses")}>
+          <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Gasto Recorrente
           </Button>
@@ -259,6 +302,19 @@ const ControleMensal = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Gasto Recorrente</DialogTitle>
+          </DialogHeader>
+          <GastoRecorrenteForm
+            onSubmit={handleCreateExpense}
+            onClose={() => setIsDialogOpen(false)}
+            isSubmitting={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

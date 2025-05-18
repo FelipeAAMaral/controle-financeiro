@@ -1,4 +1,3 @@
-
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { 
@@ -129,7 +128,7 @@ const Sidebar = ({ open, onClose, onToggle }: SidebarProps) => {
           
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             <SidebarLink to="/" icon={<Home size={18} />} end collapsed={!open}>
-              Dashboard
+              Home
             </SidebarLink>
             <SidebarLink to="/controle-mensal" icon={<CalendarDays size={18} />} collapsed={!open}>
               Controle Mensal
