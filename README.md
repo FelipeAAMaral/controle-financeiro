@@ -1,73 +1,137 @@
-# Welcome to your Lovable project
+# Financial Insight View
 
-## Project info
+A comprehensive financial management application built with FastAPI, HTMX, and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/f8f0296c-a7c0-4263-a041-ac5536676cea
+## Features
 
-## How can I edit this code?
+- User authentication and authorization
+- Dashboard with financial overview
+- Transaction management
+- Recurring expenses tracking
+- Financial goals tracking
+- Beautiful and responsive UI with Tailwind CSS
+- Real-time updates with HTMX
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- Backend:
+  - FastAPI
+  - SQLAlchemy
+  - PostgreSQL
+  - Alembic for database migrations
+  - JWT for authentication
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f8f0296c-a7c0-4263-a041-ac5536676cea) and start prompting.
+- Frontend:
+  - HTMX for dynamic updates
+  - Tailwind CSS for styling
+  - Alpine.js for interactivity
+  - Chart.js for data visualization
 
-Changes made via Lovable will be committed automatically to this repo.
+## Prerequisites
 
-**Use your preferred IDE**
+- Python 3.8+
+- PostgreSQL
+- Node.js and npm (for Tailwind CSS)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Setup
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/financial-insight-view.git
+cd financial-insight-view
 ```
 
-**Edit a file directly in GitHub**
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-**Use GitHub Codespaces**
+4. Create a `.env` file in the root directory with the following content:
+```env
+# Application settings
+PROJECT_NAME=Financial Insight View
+VERSION=0.1.0
+API_V1_STR=/api/v1
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Security
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-## What technologies are used for this project?
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/financial_insight
 
-This project is built with:
+# CORS
+CORS_ORIGINS=["http://localhost:8000", "http://localhost:3000"]
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+5. Create the database:
+```bash
+createdb financial_insight
+```
 
-## How can I deploy this project?
+6. Run database migrations:
+```bash
+alembic upgrade head
+```
 
-Simply open [Lovable](https://lovable.dev/projects/f8f0296c-a7c0-4263-a041-ac5536676cea) and click on Share -> Publish.
+7. Install Tailwind CSS:
+```bash
+npm install -D tailwindcss
+npx tailwindcss init
+```
 
-## Can I connect a custom domain to my Lovable project?
+8. Build Tailwind CSS:
+```bash
+npx tailwindcss -i ./app/static/css/input.css -o ./app/static/css/tailwind.css --watch
+```
 
-Yes, you can!
+9. Run the application:
+```bash
+uvicorn app.main:app --reload
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The application will be available at http://localhost:8000
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Development
+
+### Database Migrations
+
+To create a new migration:
+```bash
+alembic revision --autogenerate -m "description of changes"
+```
+
+To apply migrations:
+```bash
+alembic upgrade head
+```
+
+To rollback migrations:
+```bash
+alembic downgrade -1  # Rollback one migration
+```
+
+### API Documentation
+
+Once the application is running, you can access:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

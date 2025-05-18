@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Financial Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Current Balance -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900">Saldo Atual</h3>
+            <p class="mt-2 text-3xl font-bold text-gray-900">R$ {{ "%.2f"|format(overview.current_balance) }}</p>
+            <div class="mt-2">
+                <span class="text-sm {% if overview.balance_variation >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ "%.1f"|format(overview.balance_variation) }}% vs mês anterior
+                </span>
+            </div>
+        </div>
+
+        <!-- Monthly Income -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900">Receitas do Mês</h3>
+            <p class="mt-2 text-3xl font-bold text-green-600">R$ {{ "%.2f"|format(overview.monthly_income) }}</p>
+            <div class="mt-2">
+                <span class="text-sm {% if overview.income_variation >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ "%.1f"|format(overview.income_variation) }}% vs mês anterior
+                </span>
+            </div>
+        </div>
+
+        <!-- Monthly Expenses -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900">Despesas do Mês</h3>
+            <p class="mt-2 text-3xl font-bold text-red-600">R$ {{ "%.2f"|format(overview.monthly_expenses) }}</p>
+            <div class="mt-2">
+                <span class="text-sm {% if overview.expenses_variation <= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ "%.1f"|format(overview.expenses_variation) }}% vs mês anterior
+                </span>
+            </div>
+        </div>
+
+        <!-- Savings Rate -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900">Taxa de Poupança</h3>
+            <p class="mt-2 text-3xl font-bold text-primary">{{ "%.1f"|format(overview.savings_rate) }}%</p>
+            <div class="mt-2">
+                <span class="text-sm {% if overview.savings_rate_variation >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ "%.1f"|format(overview.savings_rate_variation) }}% vs mês anterior
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Tables -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Monthly Evolution Chart -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Evolução Mensal</h3>
+            <div class="h-80">
+                <canvas id="monthlyEvolutionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Expenses by Category -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Despesas por Categoria</h3>
+            <div class="h-80">
+                <canvas id="expensesByCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions and Goals -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Transactions -->
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Transações Recentes</h3>
+                <a href="/transactions" class="text-sm text-primary hover:text-primary-dark">Ver todas</a>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>{{ transaction.date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>{{ transaction.category }}</td>
+                            <td class="{% if transaction.type == 'income' %}text-green-600{% else %}text-red-600{% endif %}">
+                                R$ {{ "%.2f"|format(transaction.amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Financial Goals -->
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Objetivos Financeiros</h3>
+                <a href="/goals" class="text-sm text-primary hover:text-primary-dark">Ver todos</a>
+            </div>
+            <div class="space-y-4">
+                {% for goal in goals %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ goal.name }}</h4>
+                            <p class="text-sm text-gray-500">{{ goal.description }}</p>
+                        </div>
+                        <span class="text-sm font-medium text-primary">{{ "%.1f"|format(goal.progress) }}%</span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full" style="width: {{ goal.progress }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-between text-sm text-gray-500">
+                        <span>R$ {{ "%.2f"|format(goal.current_amount) }}</span>
+                        <span>R$ {{ "%.2f"|format(goal.target_amount) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Monthly Evolution Chart
+    const monthlyEvolutionCtx = document.getElementById('monthlyEvolutionChart').getContext('2d');
+    new Chart(monthlyEvolutionCtx, {
+        type: 'line',
+        data: {
+            labels: {{ monthly_evolution.labels|tojson }},
+            datasets: [{
+                label: 'Receitas',
+                data: {{ monthly_evolution.income|tojson }},
+                borderColor: '#10b981',
+                tension: 0.1
+            }, {
+                label: 'Despesas',
+                data: {{ monthly_evolution.expenses|tojson }},
+                borderColor: '#ef4444',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Expenses by Category Chart
+    const expensesByCategoryCtx = document.getElementById('expensesByCategoryChart').getContext('2d');
+    new Chart(expensesByCategoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ expenses_by_category.labels|tojson }},
+            datasets: [{
+                data: {{ expenses_by_category.values|tojson }},
+                backgroundColor: [
+                    '#ef4444',
+                    '#f97316',
+                    '#f59e0b',
+                    '#84cc16',
+                    '#10b981',
+                    '#06b6d4',
+                    '#3b82f6',
+                    '#8b5cf6',
+                    '#d946ef',
+                    '#ec4899'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 
